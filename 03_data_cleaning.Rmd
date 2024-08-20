@@ -1,0 +1,1249 @@
+---
+title: "03. Data Cleaning"
+author: Jessica Guezen
+output: pdf_document
+---
+
+# Set up
+
+Open CSVs:
+```{r}
+trait_dat = read.csv("~/Desktop/clim_land_arthropods/Trait_Data.csv",
+                     header = TRUE)
+species_dat = read.csv("~/Desktop/clim_land_arthropods/Species_Data.csv",
+                       header = TRUE)
+site_clim_dat = read.csv("~/Desktop/clim_land_arthropods/Site_Clim_Data.csv", header = TRUE)
+land_dat = read.csv("~/Desktop/clim_land_arthropods/Landscape_Data.csv",
+                    header = TRUE)
+study_metdat = read.csv("~/Desktop/clim_land_arthropods/Study_Metadata.csv",
+                        header = TRUE)
+```
+
+Load packages:
+```{r}
+library(tidyverse)
+```
+
+# Landscape Data
+
+Change from long to wide format:
+```{r}
+land_dat_wide <-
+  land_dat %>%
+  pivot_wider(names_from = Radius_meters,
+              names_sep = "_",
+              values_from = c(Percent_seminatural,
+                              Percent_arable,
+                              Percent_forest,
+                              Percent_urban,
+                              Percent_water,
+                              Total_Edge_density_kmperha,
+                              Shannon_habitat_diversity_index))
+rm(land_dat)
+```
+
+# Species, Trait, and Study Metadata
+
+Remove all columns from study_metdat except Study.ID and Functional.groups:
+```{r}
+study_metdat <-
+  study_metdat %>%
+  dplyr::select(Study.ID, Functional.groups)
+```
+
+Get levels for Functional.groups:
+```{r}
+levels(as.factor(study_metdat$Functional.groups))
+```
+
+Add "Pollinator_study", "Pest_study", "Nat_enemy_study", and "Seed_pred_study" variables:
+```{r}
+study_metdat <-
+  study_metdat %>%
+  mutate(Pest_study = case_when(
+    Functional.groups == "enemies, pests, pollinators" ~ 1,
+    Functional.groups == "enemies, pollinators, pests" ~ 1,
+    Functional.groups == "enemies, pests" ~ 1,
+    Functional.groups == "pests" ~ 1,
+    .default = 0))%>%
+   mutate(Pollinator_study = case_when(
+    Functional.groups == "enemies, pests, pollinators" ~ 1,
+    Functional.groups == "enemies, pollinators, pests" ~ 1,
+    Functional.groups == "pollinators" ~ 1,
+    Functional.groups == "enemies, pollinators" ~ 1,
+    .default = 0))%>%
+  mutate(Nat_enemy_study = case_when(
+    Functional.groups == "enemies"  ~ 1,
+    Functional.groups == "enemies, pests, pollinators" ~ 1,
+    Functional.groups == "enemies, pollinators, pests" ~ 1,
+    Functional.groups == "enemies, pests" ~ 1,
+    Functional.groups == "enemies, pollinators" ~ 1,
+    .default = 0))%>%
+  mutate(Seed_pred_study = case_when(
+    Functional.groups == "seed predators"  ~ 1,
+    .default = 0))
+```
+
+Combine species data and study metadata:
+```{r}
+species_dat <-
+  species_dat %>%
+  left_join(study_metdat,
+            join_by(StudyID == Study.ID))
+rm(study_metdat)
+```
+
+Check for duplicates in trait_dat:
+```{r}
+trait_dat$SpeciesID[duplicated(trait_dat$SpeciesID)]
+```
+
+Get levels for Functional_group when SpeciesID = "Syrphidae"
+```{r}
+trait_dat %>%
+  filter(SpeciesID == "Syrphidae") %>%
+  reframe(Functional_group)
+```
+
+Get levels for Functional_group when SpeciesID = "Diptera"
+```{r}
+trait_dat%>%
+  filter(SpeciesID == "Diptera") %>%
+  reframe(Functional_group)
+```
+
+Create new SpeciesID's based on Functional_group for Syrphidae and Diptera:
+```{r}
+trait_dat <-
+  trait_dat %>%
+  mutate(SpeciesID = 
+           case_when(
+             SpeciesID == "Syrphidae" & 
+              Functional_group == "larval predator, adult pollinator" ~
+               "Syrphidae_pred_poll",
+             SpeciesID == "Syrphidae" & 
+               Functional_group == "pollinator"~
+               "Syrphidae_poll",
+             SpeciesID == "Syrphidae" & 
+               Functional_group == "predator"~
+               "Syrphidae_pred",
+             .default = SpeciesID
+             ))%>%
+  mutate(SpeciesID = 
+           case_when(
+             SpeciesID == "Diptera" & 
+              Functional_group == "pollinator" ~
+               "Diptera_poll",
+             SpeciesID == "Diptera" & 
+               Functional_group == "parasitoid of bees"~
+               "Diptera_pred",
+             .default = SpeciesID
+             ))
+```
+
+Create new corrected_names based on Pollinator_study and Nat_Enemy_study for Syrphidae and Diptera:
+```{r}
+species_dat <-
+  species_dat %>%
+  mutate(corrected_name = 
+           case_when(
+             corrected_name == "Syrphidae" & 
+              Pollinator_study == "1" & 
+               Nat_enemy_study == "1" ~
+               "Syrphidae_pred_poll",
+             corrected_name == "Syrphidae" & 
+               Pollinator_study == "1" & 
+               Nat_enemy_study == "0" ~
+               "Syrphidae_poll",
+             corrected_name == "Syrphidae" & 
+               Pollinator_study == "0" & 
+               Nat_enemy_study == "1" ~
+               "Syrphidae_pred",
+             .default = corrected_name
+             ))%>%
+  mutate(corrected_name = 
+           case_when(
+             corrected_name == "Diptera" & 
+               OrganismID == "Diptera sp. (trapnest parasitoid ie larva)" ~
+               "Diptera_pred",
+             corrected_name == "Diptera" & 
+               OrganismID != "Diptera sp. (trapnest parasitoid ie larva)" ~
+               "Diptera_poll",
+             .default = corrected_name
+             ))
+```
+
+Combine species and trait data:
+```{r}
+species_trait_dat <-
+  species_dat %>%
+  left_join(trait_dat,
+            join_by(corrected_name == SpeciesID))
+```
+
+Remove Functional.groups variable:
+```{r}
+species_trait_dat <-
+  species_trait_dat %>%
+  dplyr::select(-Functional.groups)
+```
+
+
+# All data combined
+
+Remove columns from site_clim_dat: X, Year, Site_description, Crop_species,
+Tilling, Local_diversity, and Other_covariate:
+```{r}
+site_clim_dat <-
+  site_clim_dat %>%
+  dplyr::select(-X,
+         -Year,
+         -Site_description,
+         -Crop_species,
+         -Tilling,
+         -Local_diversity,
+         -Other_covariate)
+```
+
+
+```{r}
+final_dat <-
+  species_trait_dat %>%
+  left_join(land_dat_wide,
+            join_by(
+              StudyID == StudyID,
+              StudyID_yr == StudyID_yr,
+              SiteID == SiteID))%>%
+  left_join(site_clim_dat,
+            join_by(
+              StudyID == StudyID,
+              StudyID_yr == StudyID_yr,
+              SiteID == SiteID))
+```
+
+
+```{r}
+levels(as.factor(final_dat$Functional_group))
+```
+
+
+Create functional group variables:
+```{r}
+final_dat <-
+  final_dat %>%
+  mutate(
+    fg_pollinator = case_when(
+      Functional_group ==
+        "larval non-pest herbivore, adult pollinator" |
+        Functional_group ==
+        "larval parasitoid, adult pollinator" |
+        Functional_group ==
+        "larval parasitoid, adult pollinator (larva)" |
+        Functional_group ==
+        "larval pest herbivore, adult pollinator" |
+        Functional_group ==
+        "larval pest herbivore, adult pollinator (adults)" |
+        Functional_group ==
+        "larval predator, adult pollinator" |
+        Functional_group ==
+        "pollinator" ~ 1,
+      .default = 0
+    ),
+    fg_nat_enemy = case_when(
+      Functional_group ==
+        "aphid-tender, predator" |
+        Functional_group ==
+        "cleptoparasite"  |
+        Functional_group ==
+        "larval parasitoid, adult pollinator" |
+        Functional_group ==
+        "larval parasitoid, adult pollinator (larva)" |
+        Functional_group ==
+        "larval predator, adult pollinator" |
+        Functional_group ==
+        "parasitoid" |
+        Functional_group ==
+        "parasitoid of bees" |
+        Functional_group ==
+        "predator" ~ 1,
+      .default = 0
+    ),
+    fg_pest = case_when(
+      Functional_group ==
+        "larval pest herbivore, adult pollinator" |
+        Functional_group ==
+        "larval pest herbivore, adult pollinator (adults)"  |
+        Functional_group ==
+        "pest herbivore" ~ 1,
+      .default = 0
+    )
+  )
+```
+
+```{r}
+levels(as.factor(final_dat$diet_breadth))
+levels(as.factor(final_dat$overwintering_habitat))
+levels(as.factor(final_dat$dispersal))
+```
+
+```{r}
+sum(is.na(final_dat$diet_breadth))
+sum(is.na(final_dat$overwintering_habitat))
+sum(is.na(final_dat$dispersal))
+```
+
+```{r}
+final_dat %>%
+  filter(Pollinator_study == 1) %>%
+  count(diet_breadth, dispersal, overwintering_habitat) 
+```
+
+```{r}
+final_dat %>%
+  filter(Pest_study == 1) %>%
+  count(diet_breadth, dispersal, overwintering_habitat) 
+```
+
+```{r}
+final_dat %>%
+  filter(Nat_enemy_study == 1) %>%
+  count(diet_breadth, dispersal, overwintering_habitat) 
+```
+
+Create trait syndrome (ts) variables for pollinators:
+```{r}
+final_dat <-
+  final_dat %>%
+  mutate(
+    #TS1
+    ts_poll_gen_flight_noncrop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS2
+    ts_poll_gen_flight_crop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS3
+    ts_poll_gen_flightwind_noncrop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flightwind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS4
+    ts_poll_gen_flightwind_crop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flightwind" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS5
+    ts_poll_gen_ground_noncrop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "ground" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS6
+    ts_poll_gen_ground_crop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "ground" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS7
+    ts_poll_gen_wind_noncrop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "wind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS8
+    ts_poll_gen_wind_crop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "wind" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS9
+    ts_poll_spec_flight_noncrop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS10
+    ts_poll_spec_flight_crop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS11
+    ts_poll_spec_flightwind_noncrop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight/wind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS12
+    ts_poll_spec_flightwind_crop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight/wind" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS13
+    ts_poll_spec_ground_noncrop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "ground" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS14
+    ts_poll_spec_wind_noncrop = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "wind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    )
+  )
+```
+
+Create trait syndrome (ts) variables for natural enemies:
+```{r}
+final_dat <-
+  final_dat %>%
+  mutate(
+    #TS1
+    ts_nat_gen_flight_noncrop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS2
+    ts_nat_gen_flight_crop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS3
+    ts_nat_gen_flightwind_noncrop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flightwind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS4
+    ts_nat_gen_flightwind_crop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flightwind" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS5
+    ts_nat_gen_ground_noncrop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "ground" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS6
+    ts_nat_gen_ground_crop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "ground" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS7
+    ts_nat_gen_wind_noncrop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "wind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS8
+    ts_nat_gen_wind_crop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "wind" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS9
+    ts_nat_spec_flight_noncrop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS10
+    ts_nat_spec_flight_crop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS11
+    ts_nat_spec_flightwind_noncrop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight/wind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS12
+    ts_nat_spec_flightwind_crop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight/wind" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS13
+    ts_nat_spec_ground_noncrop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "ground" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS14
+    ts_nat_spec_wind_noncrop = case_when(
+      fg_nat_enemy == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "wind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    )
+  )
+```
+
+Create trait syndrome (ts) variables for pests:
+```{r}
+final_dat <-
+  final_dat %>%
+  mutate(
+    #TS1
+    ts_pest_gen_flight_noncrop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS2
+    ts_pest_gen_flight_crop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS3
+    ts_pest_gen_flightwind_noncrop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flightwind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS4
+    ts_pest_gen_flightwind_crop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flightwind" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS5
+    ts_pest_gen_ground_noncrop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "ground" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS6
+    ts_pest_gen_ground_crop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "ground" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS7
+    ts_pest_gen_wind_noncrop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "wind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS8
+    ts_pest_gen_wind_crop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "wind" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS9
+    ts_pest_spec_flight_noncrop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS10
+    ts_pest_spec_flight_crop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS11
+    ts_pest_spec_flightwind_noncrop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight/wind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS12
+    ts_pest_spec_flightwind_crop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight/wind" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS13
+    ts_pest_spec_ground_noncrop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "ground" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #TS14
+    ts_pest_spec_wind_noncrop = case_when(
+      fg_pest == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "wind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    )
+  )
+```
+
+# Final data cleaning
+
+Remove organic sites:
+```{r}
+final_dat <-
+  final_dat %>%
+  filter(!Management == "organic")%>%
+  dplyr::select(-Management)
+```
+
+Calculate abundance and sampling effort: 
+```{r}
+final_dat <-
+  final_dat %>%
+  group_by(StudyID,
+           Year,
+           SiteID,
+           Sampling_method,
+           Block)%>%
+  mutate(total_abund = sum(Abundance),
+         #pollinator TS:
+         ts_poll_gen_flight_noncrop_abund = 
+           sum(ts_poll_gen_flight_noncrop*Abundance),
+         ts_poll_gen_flight_crop_abund = 
+           sum(ts_poll_gen_flight_crop*Abundance),
+         ts_poll_gen_flightwind_noncrop_abund = 
+           sum(ts_poll_gen_flightwind_noncrop*Abundance),
+         ts_poll_gen_flightwind_crop_abund = 
+           sum(ts_poll_gen_flightwind_crop*Abundance),
+         ts_poll_gen_ground_noncrop_abund = 
+           sum(ts_poll_gen_ground_noncrop*Abundance),
+         ts_poll_gen_ground_crop_abund = 
+           sum(ts_poll_gen_ground_crop*Abundance),
+         ts_poll_gen_wind_noncrop_abund = 
+           sum(ts_poll_gen_wind_noncrop*Abundance),
+         ts_poll_gen_wind_crop_abund = 
+           sum(ts_poll_gen_wind_crop*Abundance),
+         ts_poll_spec_flight_noncrop_abund = 
+           sum(ts_poll_spec_flight_noncrop*Abundance),
+         ts_poll_spec_flight_crop_abund = 
+           sum(ts_poll_spec_flight_crop*Abundance),
+         ts_poll_spec_flightwind_noncrop_abund = 
+           sum(ts_poll_spec_flightwind_noncrop*Abundance),
+         ts_poll_spec_flightwind_crop_abund = 
+           sum(ts_poll_spec_flightwind_crop*Abundance),
+         ts_poll_spec_ground_noncrop_abund = 
+           sum(ts_poll_spec_ground_noncrop*Abundance),
+         ts_poll_spec_wind_noncrop_abund = 
+           sum(ts_poll_spec_wind_noncrop*Abundance),
+         #Natural enemy TS:
+         ts_nat_gen_flight_noncrop_abund = 
+           sum(ts_nat_gen_flight_noncrop*Abundance),
+         ts_nat_gen_flight_crop_abund = 
+           sum(ts_nat_gen_flight_crop*Abundance),
+         ts_nat_gen_flightwind_noncrop_abund = 
+           sum(ts_nat_gen_flightwind_noncrop*Abundance),
+         ts_nat_gen_flightwind_crop_abund = 
+           sum(ts_nat_gen_flightwind_crop*Abundance),
+         ts_nat_gen_ground_noncrop_abund = 
+           sum(ts_nat_gen_ground_noncrop*Abundance),
+         ts_nat_gen_ground_crop_abund = 
+           sum(ts_nat_gen_ground_crop*Abundance),
+         ts_nat_gen_wind_noncrop_abund = 
+           sum(ts_nat_gen_wind_noncrop*Abundance),
+         ts_nat_gen_wind_crop_abund = 
+           sum(ts_nat_gen_wind_crop*Abundance),
+         ts_nat_spec_flight_noncrop_abund = 
+           sum(ts_nat_spec_flight_noncrop*Abundance),
+         ts_nat_spec_flight_crop_abund = 
+           sum(ts_nat_spec_flight_crop*Abundance),
+         ts_nat_spec_flightwind_noncrop_abund = 
+           sum(ts_nat_spec_flightwind_noncrop*Abundance),
+         ts_nat_spec_flightwind_crop_abund = 
+           sum(ts_nat_spec_flightwind_crop*Abundance),
+         ts_nat_spec_ground_noncrop_abund = 
+           sum(ts_nat_spec_ground_noncrop*Abundance),
+         ts_nat_spec_wind_noncrop_abund = 
+           sum(ts_nat_spec_wind_noncrop*Abundance),
+         #Pest TS:
+         ts_pest_gen_flight_noncrop_abund = 
+           sum(ts_pest_gen_flight_noncrop*Abundance),
+         ts_pest_gen_flight_crop_abund = 
+           sum(ts_pest_gen_flight_crop*Abundance),
+         ts_pest_gen_flightwind_noncrop_abund = 
+           sum(ts_pest_gen_flightwind_noncrop*Abundance),
+         ts_pest_gen_flightwind_crop_abund = 
+           sum(ts_pest_gen_flightwind_crop*Abundance),
+         ts_pest_gen_ground_noncrop_abund = 
+           sum(ts_pest_gen_ground_noncrop*Abundance),
+         ts_pest_gen_ground_crop_abund = 
+           sum(ts_pest_gen_ground_crop*Abundance),
+         ts_pest_gen_wind_noncrop_abund = 
+           sum(ts_pest_gen_wind_noncrop*Abundance),
+         ts_pest_gen_wind_crop_abund = 
+           sum(ts_pest_gen_wind_crop*Abundance),
+         ts_pest_spec_flight_noncrop_abund = 
+           sum(ts_pest_spec_flight_noncrop*Abundance),
+         ts_pest_spec_flight_crop_abund = 
+           sum(ts_pest_spec_flight_crop*Abundance),
+         ts_pest_spec_flightwind_noncrop_abund = 
+           sum(ts_pest_spec_flightwind_noncrop*Abundance),
+         ts_pest_spec_flightwind_crop_abund = 
+           sum(ts_pest_spec_flightwind_crop*Abundance),
+         ts_pest_spec_ground_noncrop_abund = 
+           sum(ts_pest_spec_ground_noncrop*Abundance),
+         ts_pest_spec_wind_noncrop_abund = 
+           sum(ts_pest_spec_wind_noncrop*Abundance),
+         #Functional groups:
+         fg_pollinator_abund = 
+           sum(fg_pollinator*Abundance),
+         fg_nat_enemy_abund = 
+           sum(fg_nat_enemy*Abundance),
+         fg_pest_abund = 
+           sum(fg_pest*Abundance))%>%
+  dplyr::select(-corrected_name,
+         -OrganismID,
+         -Abundance,
+         -Authority,
+         -Family,
+         -Taxonomic_group,
+         -Functional_group,
+         -diet_breadth,
+         -agricultural_specialist,
+         -diet_life_history,
+         -overwintering_habitat,
+         -dispersal,
+         -stratum,
+         -ts_poll_gen_flight_noncrop,
+         -ts_poll_gen_flight_crop,
+         -ts_poll_gen_flightwind_noncrop,
+         -ts_poll_gen_flightwind_crop,
+         -ts_poll_gen_ground_noncrop,
+         -ts_poll_gen_ground_crop,
+         -ts_poll_gen_wind_noncrop,
+         -ts_poll_gen_wind_crop,
+         -ts_poll_spec_flight_noncrop,
+         -ts_poll_spec_flight_crop,
+         -ts_poll_spec_flightwind_noncrop,
+         -ts_poll_spec_flightwind_crop,
+         -ts_poll_spec_ground_noncrop,
+         -ts_poll_spec_wind_noncrop,
+         -ts_nat_gen_flight_noncrop,
+         -ts_nat_gen_flight_crop,
+         -ts_nat_gen_flightwind_noncrop,
+         -ts_nat_gen_flightwind_crop,
+         -ts_nat_gen_ground_noncrop,
+         -ts_nat_gen_ground_crop,
+         -ts_nat_gen_wind_noncrop,
+         -ts_nat_gen_wind_crop,
+         -ts_nat_spec_flight_noncrop,
+         -ts_nat_spec_flight_crop,
+         -ts_nat_spec_flightwind_noncrop,
+         -ts_nat_spec_flightwind_crop,
+         -ts_nat_spec_ground_noncrop,
+         -ts_nat_spec_wind_noncrop,
+         -ts_pest_gen_flight_noncrop,
+         -ts_pest_gen_flight_crop,
+         -ts_pest_gen_flightwind_noncrop,
+         -ts_pest_gen_flightwind_crop,
+         -ts_pest_gen_ground_noncrop,
+         -ts_pest_gen_ground_crop,
+         -ts_pest_gen_wind_noncrop,
+         -ts_pest_gen_wind_crop,
+         -ts_pest_spec_flight_noncrop,
+         -ts_pest_spec_flight_crop,
+         -ts_pest_spec_flightwind_noncrop,
+         -ts_pest_spec_flightwind_crop,
+         -ts_pest_spec_ground_noncrop,
+         -ts_pest_spec_wind_noncrop,
+         -fg_pollinator,
+         -fg_nat_enemy,
+         -fg_pest) %>%
+  distinct(.keep_all = TRUE) %>%
+  ungroup()%>%
+  mutate(sampling_effort =
+           case_when(
+             Abundance_duration > 0 & Nb_censuses > 0 ~
+               Abundance_duration*Nb_censuses,
+             Abundance_duration > 0 & Nb_censuses == 0 ~
+               Abundance_duration,
+             Abundance_duration == 0 & Nb_censuses > 0 ~
+               Nb_censuses,
+             Abundance_duration > 0 & is.na(Nb_censuses) ~
+               Abundance_duration,
+             is.na(Abundance_duration) & Nb_censuses > 0 ~
+               Nb_censuses
+             ))
+```
+
+Calculate abundances scaled by sampling effort:
+```{r}
+final_dat <-
+  final_dat %>%
+  group_by(StudyID,
+           Year) %>%
+  mutate(sampling_effort_scaled = sampling_effort / max(sampling_effort)) %>%
+  ungroup() %>%
+  mutate(
+    total_abund_scaled = total_abund / sampling_effort_scaled,
+    ts_poll_gen_flight_noncrop_abund_scaled =
+      ts_poll_gen_flight_noncrop_abund / sampling_effort_scaled,
+    ts_poll_gen_flight_crop_abund_scaled =
+      ts_poll_gen_flight_crop_abund / sampling_effort_scaled,
+    ts_poll_gen_flightwind_noncrop_abund_scaled =
+      ts_poll_gen_flightwind_noncrop_abund / sampling_effort_scaled,
+    ts_poll_gen_flightwind_crop_abund_scaled =
+      ts_poll_gen_flightwind_crop_abund / sampling_effort_scaled,
+    ts_poll_gen_ground_noncrop_abund_scaled =
+      ts_poll_gen_ground_noncrop_abund / sampling_effort_scaled,
+    ts_poll_gen_ground_crop_abund_scaled =
+      ts_poll_gen_ground_crop_abund / sampling_effort_scaled,
+    ts_poll_gen_wind_noncrop_abund_scaled =
+      ts_poll_gen_wind_noncrop_abund / sampling_effort_scaled,
+    ts_poll_gen_wind_crop_abund_scaled =
+      ts_poll_gen_wind_crop_abund / sampling_effort_scaled,
+    ts_poll_spec_flight_noncrop_abund_scaled =
+      ts_poll_spec_flight_noncrop_abund / sampling_effort_scaled,
+    ts_poll_spec_flight_crop_abund_scaled =
+      ts_poll_spec_flight_crop_abund / sampling_effort_scaled,
+    ts_poll_spec_flightwind_noncrop_abund_scaled =
+      ts_poll_spec_flightwind_noncrop_abund / sampling_effort_scaled,
+    ts_poll_spec_flightwind_crop_abund_scaled =
+      ts_poll_spec_flightwind_crop_abund / sampling_effort_scaled,
+    ts_poll_spec_ground_noncrop_abund_scaled =
+      ts_poll_spec_ground_noncrop_abund / sampling_effort_scaled,
+    ts_poll_spec_wind_noncrop_abund_scaled =
+      ts_poll_spec_wind_noncrop_abund / sampling_effort_scaled,
+    ts_nat_gen_flight_noncrop_abund_scaled =
+      ts_nat_gen_flight_noncrop_abund / sampling_effort_scaled,
+    ts_nat_gen_flight_crop_abund_scaled =
+      ts_nat_gen_flight_crop_abund / sampling_effort_scaled,
+    ts_nat_gen_flightwind_noncrop_abund_scaled =
+      ts_nat_gen_flightwind_noncrop_abund / sampling_effort_scaled,
+    ts_nat_gen_flightwind_crop_abund_scaled =
+      ts_nat_gen_flightwind_crop_abund / sampling_effort_scaled,
+    ts_nat_gen_ground_noncrop_abund_scaled =
+      ts_nat_gen_ground_noncrop_abund / sampling_effort_scaled,
+    ts_nat_gen_ground_crop_abund_scaled =
+      ts_nat_gen_ground_crop_abund / sampling_effort_scaled,
+    ts_nat_gen_wind_noncrop_abund_scaled =
+      ts_nat_gen_wind_noncrop_abund / sampling_effort_scaled,
+    ts_nat_gen_wind_crop_abund_scaled =
+      ts_nat_gen_wind_crop_abund / sampling_effort_scaled,
+    ts_nat_spec_flight_noncrop_abund_scaled =
+      ts_nat_spec_flight_noncrop_abund / sampling_effort_scaled,
+    ts_nat_spec_flight_crop_abund_scaled =
+      ts_nat_spec_flight_crop_abund / sampling_effort_scaled,
+    ts_nat_spec_flightwind_noncrop_abund_scaled =
+      ts_nat_spec_flightwind_noncrop_abund / sampling_effort_scaled,
+    ts_nat_spec_flightwind_crop_abund_scaled =
+      ts_nat_spec_flightwind_crop_abund / sampling_effort_scaled,
+    ts_nat_spec_ground_noncrop_abund_scaled =
+      ts_nat_spec_ground_noncrop_abund / sampling_effort_scaled,
+    ts_nat_spec_wind_noncrop_abund_scaled =
+      ts_nat_spec_wind_noncrop_abund / sampling_effort_scaled,
+    ts_pest_gen_flight_noncrop_abund_scaled =
+      ts_pest_gen_flight_noncrop_abund / sampling_effort_scaled,
+    ts_pest_gen_flight_crop_abund_scaled =
+      ts_pest_gen_flight_crop_abund / sampling_effort_scaled,
+    ts_pest_gen_flightwind_noncrop_abund_scaled =
+      ts_pest_gen_flightwind_noncrop_abund / sampling_effort_scaled,
+    ts_pest_gen_flightwind_crop_abund_scaled =
+      ts_pest_gen_flightwind_crop_abund / sampling_effort_scaled,
+    ts_pest_gen_ground_noncrop_abund_scaled =
+      ts_pest_gen_ground_noncrop_abund / sampling_effort_scaled,
+    ts_pest_gen_ground_crop_abund_scaled =
+      ts_pest_gen_ground_crop_abund / sampling_effort_scaled,
+    ts_pest_gen_wind_noncrop_abund_scaled =
+      ts_pest_gen_wind_noncrop_abund / sampling_effort_scaled,
+    ts_pest_gen_wind_crop_abund_scaled =
+      ts_pest_gen_wind_crop_abund / sampling_effort_scaled,
+    ts_pest_spec_flight_noncrop_abund_scaled =
+      ts_pest_spec_flight_noncrop_abund / sampling_effort_scaled,
+    ts_pest_spec_flight_crop_abund_scaled =
+      ts_pest_spec_flight_crop_abund / sampling_effort_scaled,
+    ts_pest_spec_flightwind_noncrop_abund_scaled =
+      ts_pest_spec_flightwind_noncrop_abund / sampling_effort_scaled,
+    ts_pest_spec_flightwind_crop_abund_scaled =
+      ts_pest_spec_flightwind_crop_abund / sampling_effort_scaled,
+    ts_pest_spec_ground_noncrop_abund_scaled =
+      ts_pest_spec_ground_noncrop_abund / sampling_effort_scaled,
+    ts_pest_spec_wind_noncrop_abund_scaled =
+      ts_pest_spec_wind_noncrop_abund / sampling_effort_scaled,
+    fg_pollinator_abund_scaled =
+      fg_pollinator_abund / sampling_effort_scaled,
+    fg_nat_enemy_abund_scaled =
+      fg_nat_enemy_abund / sampling_effort_scaled,
+    fg_pest_abund_scaled =
+      fg_pest_abund / sampling_effort_scaled
+  )
+```
+
+Rename variables:
+```{r}
+final_dat <-
+  final_dat %>%
+  rename(
+    c(
+      semi_100 = Percent_seminatural_100,
+      semi_250 = Percent_seminatural_250,
+      semi_500 = Percent_seminatural_500,
+      semi_1000 = Percent_seminatural_1000,
+      semi_2000 = Percent_seminatural_2000,
+      semi_3000 = Percent_seminatural_3000,
+      arable_100 = Percent_arable_100,
+      arable_250 = Percent_arable_250,
+      arable_500 = Percent_arable_500,
+      arable_1000 = Percent_arable_1000,
+      arable_2000 = Percent_arable_2000,
+      arable_3000 = Percent_arable_3000,
+      edge_100 = Total_Edge_density_kmperha_100,
+      edge_250 = Total_Edge_density_kmperha_250,
+      edge_500 = Total_Edge_density_kmperha_500,
+      edge_1000 = Total_Edge_density_kmperha_1000,
+      edge_2000 = Total_Edge_density_kmperha_2000,
+      edge_3000 = Total_Edge_density_kmperha_3000
+    )
+  )
+```
+
+Calculate climate variables:
+```{r}
+final_dat <-
+  final_dat %>%
+  rowwise() %>%
+  mutate(
+    TAP = sum(
+      Jan_precip,
+      Feb_precip,
+      Mar_precip,
+      Apr_precip,
+      May_precip,
+      Jun_precip,
+      Jul_precip,
+      Aug_precip,
+      Sep_precip,
+      Oct_precip,
+      Nov_precip,
+      Dec_precip
+    ),
+    min_precip = min(
+      Jan_precip,
+      Feb_precip,
+      Mar_precip,
+      Apr_precip,
+      May_precip,
+      Jun_precip,
+      Jul_precip,
+      Aug_precip,
+      Sep_precip,
+      Oct_precip,
+      Nov_precip,
+      Dec_precip
+    ),
+    max_precip = max(
+      Jan_precip,
+      Feb_precip,
+      Mar_precip,
+      Apr_precip,
+      May_precip,
+      Jun_precip,
+      Jul_precip,
+      Aug_precip,
+      Sep_precip,
+      Oct_precip,
+      Nov_precip,
+      Dec_precip
+    ),
+    MAT = mean(
+      c(
+        Jan_temp,
+        Feb_temp,
+        Mar_temp,
+        Apr_temp,
+        May_temp,
+        Jun_temp,
+        Jul_temp,
+        Aug_temp,
+        Sep_temp,
+        Oct_temp,
+        Nov_temp,
+        Dec_temp
+      )
+    ),
+    min_temp = min(
+      c(
+        Jan_temp,
+        Feb_temp,
+        Mar_temp,
+        Apr_temp,
+        May_temp,
+        Jun_temp,
+        Jul_temp,
+        Aug_temp,
+        Sep_temp,
+        Oct_temp,
+        Nov_temp,
+        Dec_temp
+      )
+    ),
+    max_temp = max(
+      c(
+        Jan_temp,
+        Feb_temp,
+        Mar_temp,
+        Apr_temp,
+        May_temp,
+        Jun_temp,
+        Jul_temp,
+        Aug_temp,
+        Sep_temp,
+        Oct_temp,
+        Nov_temp,
+        Dec_temp
+      )
+    )
+  )
+```
+
+Change temperatures from C to K:
+```{r}
+library(weathermetrics)
+final_dat <-
+  final_dat %>%
+  mutate(
+    MAT = celsius.to.kelvin(MAT),
+    min_temp = celsius.to.kelvin(min_temp),
+    max_temp = celsius.to.kelvin(max_temp)
+  )
+```
+
+Add site data:
+```{r}
+site_dat = read.csv("~/Desktop/PhD/Chapter 1/Data/Working/R/Site_Data.csv",
+                    header = TRUE)
+```
+
+```{r}
+final_dat <-
+  final_dat %>%
+  left_join(site_dat,
+            join_by(StudyID_yr == StudyID_yr,
+                    Block == Block,
+                    SiteID == SiteID))
+```
+
+# Write CSV
+
+```{r}
+write.csv(final_dat, "~/Desktop/clim_land_arthropods/final_dat.csv")
+```

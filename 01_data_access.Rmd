@@ -1,0 +1,59 @@
+---
+title: "01. Data access"
+author: Jessica Guezen
+output: pdf_document
+---
+
+# Create temporary file directory
+```{r}
+outdir <- "~/Desktop/clim_land_arthropods"
+dir.create(outdir)
+```
+
+
+# Climate Data
+
+## Temperature
+```{r}
+outdir <- "~/Desktop/clim_land_arthropods/air_temp_2014"
+dir.create(outdir)
+file_name = file.path(outdir, "air_temp_2014.tar.gz")
+url <- "http://climate.geog.udel.edu/html_pages/Global2014/air_temp_2014.tar.gz"
+download.file(url, file_name)
+untar(file_name, exdir = path.expand(outdir))
+```
+
+## Precipitation
+```{r}
+outdir <- "~/Desktop/clim_land_arthropods/precip_2014"
+dir.create(outdir)
+file_name = file.path(outdir, "precip_2014.tar.gz")
+url <- "http://climate.geog.udel.edu/html_pages/Global2014/precip_2014.tar.gz"
+download.file(url, file_name)
+untar(file_name, exdir = path.expand(outdir))
+```
+
+
+# Land-use and Arthropod Abundance Data
+
+**** Download full dataset from Dryad: https://doi.org/10.5061/dryad.6tj407n (Martin, Emily A. et al. (2019). Data from: The interplay of landscape composition and configuration: new pathways to manage functional biodiversity and agro-ecosystem services across Europe [Dataset]. Dryad)
+
+Save "Martin et al_2019_traits database_300319.xlsx" as CSV file "Trait_Data.csv" in temporary file directory (clim_land_arthropods):
+- sheet = 1
+- range = A4:K2087
+
+Save "Martin et al_2019_data tables_300319.xlsx" as CSV file "Study_Metadata.csv" in temporary file directory (clim_land_arthropods):
+- sheet = 1
+- range = A4:M62
+
+Save "Martin et al_2019_data tables_300319.xlsx" as CSV file "Site_Data.csv" in temporary file directory (clim_land_arthropods):
+- sheet = 2
+- range = A4:M2442
+
+Save "Martin et al_2019_data tables_300319.xlsx" as CSV file "Species_Data.csv" in temporary file directory (clim_land_arthropods):
+- sheet = 3
+- range = A5:J35374
+
+Save "Martin et al_2019_data tables_300319.xlsx" as CSV file "Landscape_Data.csv" in temporary file directory (clim_land_arthropods):
+- sheet = 5
+- range = A4:L10458

@@ -1,0 +1,243 @@
+---
+title: "04. Analysis - Traits"
+author: Jessica Guezen
+output: pdf_document
+---
+
+
+
+# Set up
+
+Open csv:
+```{r}
+climate_land_abund = read.csv(
+  "~/Desktop/clim_land_arthropods/final_dat.csv")
+```
+
+Load packages:
+```{r}
+library(arm)
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+library(polypoly)
+library(psych)
+library(performance)
+library(car)
+library(tidyverse)
+```
+
+```{r}
+climate_land_abund <-
+  climate_land_abund %>%
+  dplyr::select(-X)
+```
+
+# Relative Abundances
+
+## Pollinator
+
+```{r}
+Pollinator_ts_poll_rel_abund <- climate_land_abund %>%
+  filter(Pollinator_study == 1) %>%
+  dplyr::select(
+    ts_poll_gen_flight_noncrop_abund_scaled,
+    ts_poll_gen_flight_crop_abund_scaled,
+    ts_poll_gen_flightwind_noncrop_abund_scaled,
+    ts_poll_gen_flightwind_crop_abund_scaled,
+    ts_poll_gen_ground_noncrop_abund_scaled,
+    ts_poll_gen_ground_crop_abund_scaled,
+    ts_poll_gen_wind_noncrop_abund_scaled,
+    ts_poll_gen_wind_crop_abund_scaled,
+    ts_poll_spec_flight_noncrop_abund_scaled,
+    ts_poll_spec_flight_crop_abund_scaled,
+    ts_poll_spec_flightwind_noncrop_abund_scaled,
+    ts_poll_spec_flightwind_crop_abund_scaled,
+    ts_poll_spec_ground_noncrop_abund_scaled,
+    ts_poll_spec_wind_noncrop_abund_scaled,
+    semi_100,
+    edge_100,
+    arable_100,
+    min_precip,
+    max_precip,
+    TAP,
+    min_temp,
+    max_temp,
+    MAT,
+    StudyID_yr,
+    Sampling_method,
+    Block
+  ) %>%
+  na.omit()
+```
+
+Identify the trait syndromes with relative abundance > 0 at least 20% of samples:
+```{r}
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_gen_flight_noncrop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_gen_flight_crop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_gen_flightwind_noncrop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_gen_flightwind_crop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_gen_ground_noncrop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_gen_ground_crop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_gen_wind_noncrop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_gen_wind_crop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_spec_flight_noncrop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_spec_flight_crop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_spec_flightwind_noncrop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_spec_flightwind_crop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_spec_ground_noncrop_abund_scaled > 0)
+Pollinator_ts_poll_rel_abund %>%
+  count(ts_poll_spec_wind_noncrop_abund_scaled > 0)
+```
+
+## Nat_enemy
+
+```{r}
+Nat_enemy_ts_nat_rel_abund <- climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  dplyr::select(
+    ts_nat_gen_flight_noncrop_abund_scaled,
+    ts_nat_gen_flight_crop_abund_scaled,
+    ts_nat_gen_flightwind_noncrop_abund_scaled,
+    ts_nat_gen_flightwind_crop_abund_scaled,
+    ts_nat_gen_ground_noncrop_abund_scaled,
+    ts_nat_gen_ground_crop_abund_scaled,
+    ts_nat_gen_wind_noncrop_abund_scaled,
+    ts_nat_gen_wind_crop_abund_scaled,
+    ts_nat_spec_flight_noncrop_abund_scaled,
+    ts_nat_spec_flight_crop_abund_scaled,
+    ts_nat_spec_flightwind_noncrop_abund_scaled,
+    ts_nat_spec_flightwind_crop_abund_scaled,
+    ts_nat_spec_ground_noncrop_abund_scaled,
+    ts_nat_spec_wind_noncrop_abund_scaled,
+    semi_100,
+    edge_100,
+    arable_100,
+    min_precip,
+    max_precip,
+    TAP,
+    min_temp,
+    max_temp,
+    MAT,
+    StudyID_yr,
+    Sampling_method,
+    Block
+  ) %>%
+  na.omit()
+```
+
+Identify the trait syndromes with relative abundance >0 at least 20% of samples:
+```{r}
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_gen_flight_noncrop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_gen_flight_crop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_gen_flightwind_noncrop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_gen_flightwind_crop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_gen_ground_noncrop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_gen_ground_crop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_gen_wind_noncrop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_gen_wind_crop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_spec_flight_noncrop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_spec_flight_crop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_spec_flightwind_noncrop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_spec_flightwind_crop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_spec_ground_noncrop_abund_scaled > 0)
+Nat_enemy_ts_nat_rel_abund %>%
+  count(ts_nat_spec_wind_noncrop_abund_scaled > 0)
+```
+
+## Pest
+
+Calculate relative abundance of each trait syndrome:
+```{r}
+Pest_ts_pest_rel_abund <- climate_land_abund %>%
+  filter(Pest_study == 1) %>%
+  dplyr::select(
+    ts_pest_gen_flight_noncrop_abund_scaled,
+    ts_pest_gen_flight_crop_abund_scaled,
+    ts_pest_gen_flightwind_noncrop_abund_scaled,
+    ts_pest_gen_flightwind_crop_abund_scaled,
+    ts_pest_gen_ground_noncrop_abund_scaled,
+    ts_pest_gen_ground_crop_abund_scaled,
+    ts_pest_gen_wind_noncrop_abund_scaled,
+    ts_pest_gen_wind_crop_abund_scaled,
+    ts_pest_spec_flight_noncrop_abund_scaled,
+    ts_pest_spec_flight_crop_abund_scaled,
+    ts_pest_spec_flightwind_noncrop_abund_scaled,
+    ts_pest_spec_flightwind_crop_abund_scaled,
+    ts_pest_spec_ground_noncrop_abund_scaled,
+    ts_pest_spec_wind_noncrop_abund_scaled,
+    semi_100,
+    edge_100,
+    arable_100,
+    min_precip,
+    max_precip,
+    TAP,
+    min_temp,
+    max_temp,
+    MAT,
+    StudyID_yr,
+    Sampling_method,
+    Block,
+    SiteID
+  ) %>%
+  na.omit()
+```
+
+Identify the trait syndromes with relative abundance >0 at least 25% of samples:
+```{r}
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_gen_flight_noncrop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_gen_flight_crop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_gen_flightwind_noncrop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_gen_flightwind_crop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_gen_ground_noncrop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_gen_ground_crop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_gen_wind_noncrop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_gen_wind_crop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_spec_flight_noncrop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_spec_flight_crop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_spec_flightwind_noncrop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_spec_flightwind_crop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_spec_ground_noncrop_abund_scaled > 0)
+Pest_ts_pest_rel_abund %>%
+  count(ts_pest_spec_wind_noncrop_abund_scaled > 0)
+```
+
