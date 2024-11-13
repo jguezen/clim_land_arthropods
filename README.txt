@@ -1,4 +1,4 @@
-This README.txt file was generated on 2024-08-15 by Jessica Guezen 
+This README.txt file was generated on 2024-11-12 by Jessica Guezen 
 
 --------------------
 GENERAL INFORMATION
@@ -49,26 +49,7 @@ DATA & FILE OVERVIEW
 
 04_trait_syndromes.Rmd: R markdown file with code for calculating the percentage of a given trait syndrome across sampling locations. Requires previous run of “01_data_access.Rmd”, “02_spatial.Rmd”, and “03_data_cleaning.Rmd”
 
-04_analysis_poll.Rmd: R markdown file with code for running analysis on pollinator abundance. Requires previous run of “01_data_access.Rmd”, “02_spatial.Rmd”, and “03_data_cleaning.Rmd”
-
-04_analysis_pest.Rmd: R markdown file with code for running analysis on pest abundance. Requires previous run of Requires previous run of “01_data_access.Rmd”, “02_spatial.Rmd”, and “03_data_cleaning.Rmd”
-
-04_analysis_nat.Rmd: R markdown file with code for running analysis on natural enemy abundance. Requires previous run of “01_data_access.Rmd”, “02_spatial.Rmd”, and “03_data_cleaning.Rmd”
-
-04_analysis_poll_ts1.Rmd: R markdown file with code for running analysis on diet generalist pollinator abundance. Requires previous run of “01_data_access.Rmd”, “02_spatial.Rmd”, and 
-“03_data_cleaning.Rmd”
-
-04_analysis_poll_ts2.Rmd: R markdown file with code for running analysis on diet specialist pollinator abundance. Requires previous run of “01_data_access.Rmd”, “02_spatial.Rmd”, and “03_data_cleaning.Rmd”
-
-04_analysis_pest_ts1.Rmd: R markdown file with code for running analysis on habitat generalist pest abundance. Requires previous run of “01_data_access.Rmd”, “02_spatial.Rmd”, and “03_data_cleaning.Rmd”
-
-04_analysis_pest_ts2.Rmd: R markdown file with code for running analysis on habitat specialist pest abundance. Requires previous run of “01_data_access.Rmd”, “02_spatial.Rmd”, and “03_data_cleaning.Rmd”
-
-04_analysis_nat_ts1.Rmd: R markdown file with code for running analysis on habitat generalist, flight dispersal natural enemy abundance. Requires previous run of “01_data_access.Rmd”, “02_spatial.Rmd”, and “03_data_cleaning.Rmd”
-
-04_analysis_nat_ts2.Rmd: R markdown file with code for running analysis on habitat generalist, ground dispersal natural enemy abundance. Requires previous run of “01_data_access.Rmd”, “02_spatial.Rmd”, and “03_data_cleaning.Rmd”
-
-04_analysis_nat_ts3.Rmd: R markdown file with code for running analysis on habitat specialist, ground dispersal natural enemy abundance. Requires previous run of “01_data_access.Rmd”, “02_spatial.Rmd”, and “03_data_cleaning.Rmd”
+04_analysis_models.Rmd: R markdown file with code for running analysis on abundance of pollinators, pests, natural enemies, and trait syndromes. Requires previous run of “01_data_access.Rmd”, “02_spatial.Rmd”, and “03_data_cleaning.Rmd”
 
 05_figures: R markdown file with code for all figures in manuscript. Requires previous run of all other R markdown files
 
