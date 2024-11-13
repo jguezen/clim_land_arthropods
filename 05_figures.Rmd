@@ -570,9 +570,8 @@ Bar_legend
 ```{r}
 citable_02 <- read.csv("~/Desktop/clim_land_arthropods/citable_02.csv")
 citable_03 <- read.csv("~/Desktop/clim_land_arthropods/citable_03.csv")
-citable_A01 <- read.csv("~/Desktop/clim_land_arthropods/citable_A01.csv")
-citable_A02 <- read.csv("~/Desktop/clim_land_arthropods/citable_A02.csv")
-citable_C02 <- read.csv("~/Desktop/clim_land_arthropods/citable_C02.csv")
+citable_06 <- read.csv("~/Desktop/clim_land_arthropods/citable_06.csv")
+citable_08 <- read.csv("~/Desktop/clim_land_arthropods/citable_08.csv")
 ```
 
 ## Formatting
@@ -586,145 +585,40 @@ citable_03 <- citable_03 %>%
   mutate(
     fg_ts = "03"
   )
-citable_A01 <- citable_A01 %>%
+citable_06 <- citable_06 %>%
   mutate(
-    fg_ts = "A01"
+    fg_ts = "06"
   )
-citable_A02 <- citable_A02 %>%
+citable_08 <- citable_08 %>%
   mutate(
-    fg_ts = "A02"
-  )
-citable_C02 <- citable_C02 %>%
-  mutate(
-    fg_ts = "C02"
+    fg_ts = "08"
   )
 ci_graphic <- rbind(
   citable_02,
   citable_03,
-  citable_A01,
-  citable_A02,
-  citable_C02
+  citable_06,
+  citable_08
 )
-ci_graphic <- ci_graphic %>%
-  dplyr::select(-significant_100,
-                -significant_250,
-                -significant_500,
-                -significant_1000,
-                -significant_2000,
-                -significant_3000)
-```
-
-
-```{r}
-ci_graphic <- ci_graphic %>%
-  mutate(
-    term =
-      case_match(
-        term,
-        "arable_1_l" ~ "arable",
-        "arable_1_l:z.edge_1_l" ~ "arable*edge",
-        "arable_1_l:z.edge_2_l" ~ "arable*edge^2",
-        "arable_1_l:z.MAT_1_l" ~ "arable*MAT",
-        "arable_1_l:z.MAT_2_l" ~ "arable*MAT^2",
-        "arable_1_l:z.max_temp_1_l" ~ "arable*maxT",
-        "arable_1_l:z.max_temp_2_l" ~ "arable*maxT^2",
-        "arable_1_l:z.TAP_1_l" ~ "arable*TAP",
-        "arable_1_l:z.TAP_2_l" ~ "arable*TAP^2",
-        "arable_2_l:z.TAP_1_l" ~ "arable^2*TAP",
-        "arable_2_l" ~ "arable^2",
-        "edge_1_l" ~ "edge",
-        "edge_1_l:z.arable_2_l" ~ "edge*arable^2",
-        "edge_1_l:z.max_temp_1_l" ~ "edge*maxT",
-        "edge_1_l:z.max_temp_2_l" ~ "edge*maxT^2",
-        "edge_1_l:z.min_precip_1_l" ~ "edge*minP",
-        "edge_1_l:z.min_precip_2_l" ~ "edge*minP^2",
-        "edge_1_l:z.TAP_1_l" ~ "edge*TAP",
-        "edge_1_l:z.TAP_2_l" ~ "edge*TAP^2",
-        "edge_2_l" ~ "edge^2",
-        "MAT_1_l" ~ "MAT",
-        "MAT_1_l:z.arable_2_l" ~ "MAT*arable^2",
-        "MAT_1_l:z.semi_2_l" ~ "MAT*SNH^2",
-        "MAT_2_l" ~ "MAT^2",
-        "max_precip_1_l" ~ "maxP",
-        "max_precip_1_l:z.semi_2_l" ~ "maxP*SNH^2",
-        "max_precip_2_l" ~ "maxP^2",
-        "max_temp_1_l" ~ "maxT",
-        "max_temp_1_l:z.edge_2_l" ~ "maxT*edge^2",
-        "max_temp_1_l:z.semi_2_l" ~ "maxT*SNH^2",
-        "max_temp_2_l" ~ "maxT^2",
-        "min_precip_1_l" ~ "minP",
-        "min_precip_1_l:z.edge_2_l" ~ "minP*edge^2",
-        "min_precip_1_l:z.semi_2_l" ~ "minP*SNH^2",
-        "min_precip_2_l" ~ "minP^2",
-        "min_temp_1_l" ~ "minT",
-        "min_temp_1_l:z.semi_2_l" ~ "minT*SNH^2",
-        "min_temp_2_l" ~ "minT^2",
-        "semi_1_l" ~ "SNH",
-        "semi_1_l:z.edge_1_l" ~ "SNH*edge",
-        "semi_1_l:z.edge_2_l" ~ "SNH*edge^2",
-        "semi_1_l:z.MAT_1_l" ~ "SNH*MAT",
-        "semi_1_l:z.MAT_2_l" ~ "SNH*MAT^2",
-        "semi_1_l:z.max_precip_1_l" ~ "SNH*maxP",
-        "semi_1_l:z.max_precip_2_l" ~ "SNH*maxP^2",
-        "semi_1_l:z.max_temp_1_l" ~ "SNH*maxT",
-        "semi_1_l:z.max_temp_2_l" ~ "SNH*maxT^2",
-        "semi_1_l:z.min_precip_1_l" ~ "SNH*minP",
-        "semi_1_l:z.min_precip_2_l" ~ "SNH*minP^2",
-        "semi_1_l:z.min_temp_1_l" ~ "SNH*minT",
-        "semi_1_l:z.min_temp_2_l" ~ "SNH*minT^2",
-        "semi_1_l:z.TAP_1_l" ~ "SNH*TAP",
-        "semi_1_l:z.TAP_2_l" ~ "SNH*TAP^2",
-        "semi_2_l:z.max_temp_1_l" ~ "SNH^2*maxT",
-        "semi_2_l:z.TAP_1_l" ~ "SNH^2*TAP",
-        "semi_2_l" ~ "SNH^2",
-        "TAP_1_l" ~ "TAP",
-        "TAP_1_l:z.arable_2_l" ~ "TAP*arable^2",
-        "TAP_1_l:z.edge_2_l" ~ "TAP*edge^2",
-        "TAP_1_l:z.semi_2_l" ~ "TAP*SNH^2",
-        "TAP_2_l" ~ "TAP^2",
-        "z.edge_1_l" ~ "edge",
-        "z.edge_1_l:z.min_temp_1_l" ~ "edge*minT",
-        "z.edge_1_l:z.min_temp_2_l" ~ "edge*minT^2",
-        "z.edge_2_l" ~ "edge^2",
-        "z.max_temp_1_l" ~ "maxT",
-        "z.max_temp_1_l:z.semi_2_l" ~ "maxT*SNH^2",
-        "z.max_temp_2_l" ~ "maxT^2",
-        "z.semi_1_l" ~ "SNH",
-        "z.semi_1_l:z.max_temp_1_l" ~ "SNH*maxT",
-        "z.semi_1_l:z.max_temp_2_l" ~ "SNH*maxT^2",
-        "z.semi_2_l" ~ "SNH^2",
-        "z.min_temp_1_l" ~ "minT",
-        "z.min_temp_1_l:z.edge_2_l" ~ "minT*edge^2",
-        "z.min_temp_2_l" ~ "minT^2",
-        .default = term
-      )
-  )
 ```
 
 ```{r}
 ci_graphic <- ci_graphic %>%
   pivot_longer(
-    cols = ends_with("2.5."),
+    cols = ends_with("_2.5"),
     names_to = c("spatial_scale"),
-    names_pattern = "X(.*)_2.5.",
+    names_pattern = "CI_(.*)_2.5",
     values_to = "CI_2.5"
   ) %>%
   mutate(
     CI_97.5 = case_when(
-      spatial_scale == 100 ~ X100_97.5.,
-      spatial_scale == 250 ~ X250_97.5.,
-      spatial_scale == 500 ~ X500_97.5.,
-      spatial_scale == 1000 ~ X1000_97.5.,
-      spatial_scale == 2000 ~ X2000_97.5.,
-      spatial_scale == 3000 ~ X3000_97.5.
+      spatial_scale == 100 ~ CI_100_97.5,
+      spatial_scale == 250 ~ CI_250_97.5,
+      spatial_scale == 500 ~ CI_500_97.5
     )
   ) %>%
-  dplyr::select(-X100_97.5.,
-                -X250_97.5.,
-                -X500_97.5.,
-                -X1000_97.5.,
-                -X2000_97.5.,
-                -X3000_97.5.) %>%
+  dplyr::select(-CI_100_97.5,
+                -CI_250_97.5,
+                -CI_500_97.5) %>%
   mutate(
     significant = case_when(
       CI_2.5 > 0 & CI_97.5 > 0 |
@@ -737,15 +631,89 @@ ci_graphic <- ci_graphic %>%
 ci_graphic$spatial_scale <-
   factor(ci_graphic$spatial_scale,
          ordered = T,
-         levels = c("3000", 
-                    "2000", 
-                    "1000", 
-                    "500", 
+         levels = c("500", 
                     "250", 
                     "100"))
 ```
 
-## Effect sizes
+```{r}
+level_order <- c(
+  "TAP:maxT^2",
+  "TAP:minT^2",
+  "TAP:MAT^2",
+  "TAP:edge^2",
+  "TAP:SNH^2",
+  "TAP:arable^2",
+  "maxT^2:TAP",
+  "maxT:TAP^2",
+  "maxT:TAP",
+  "maxT:edge^2",
+  "maxT:SNH^2",
+  "maxT:arable^2",
+  "minT^2:TAP",
+  "minT:TAP^2",
+  "minT:TAP",
+  "minT:edge^2",
+  "minT:SNH^2",
+  "minT:arable^2",
+  "MAT^2:TAP",
+  "MAT:TAP^2",
+  "MAT:TAP",
+  "MAT:edge^2",
+  "MAT:SNH^2",
+  "MAT:arable^2",
+  "edge:TAP^2",
+  "edge^2:TAP",
+  "edge:TAP",
+  "edge:maxT^2",
+  "edge:maxT",
+  "edge:minT^2",
+  "edge:minT",
+  "edge:MAT^2",
+  "edge:MAT",
+  "edge:SNH^2",
+  "edge:arable^2",
+  "SNH^2:TAP",
+  "SNH:TAP^2",
+  "SNH:TAP",
+  "SNH^2:maxT",
+  "SNH:maxT^2",
+  "SNH:maxT",
+  "SNH^2:minT",
+  "SNH:minT^2",
+  "SNH:minT",
+  "SNH^2:MAT",
+  "SNH:MAT^2",
+  "SNH:MAT",
+  "SNH^2:edge",
+  "SNH:edge^2",
+  "SNH:edge",
+  "arable:TAP^2",
+  "arable:TAP",
+  "arable:maxT^2",
+  "arable:maxT",
+  "arable:minT^2",
+  "arable:minT",
+  "arable:MAT^2",
+  "arable:MAT",
+  "arable:edge^2",
+  "arable:edge",
+  "TAP^2",
+  "TAP",
+  "maxT^2",
+  "maxT",
+  "minT^2",
+  "minT",
+  "MAT^2",
+  "MAT",
+  "edge^2",
+  "edge",
+  "SNH^2",
+  "SNH",
+  "arable^2",
+  "arable"
+)
+```
 
 ```{r}
 ci_graphic <- ci_graphic %>%
@@ -755,37 +723,19 @@ ci_graphic <- ci_graphic %>%
   ungroup()
 ```
 
+## Pollinators
+
 ```{r}
-ci_02_a <- subset(ci_graphic, fg_ts == "02" &
-                    model == 4.2)
-ci_02_b <- subset(ci_graphic, fg_ts == "02" &
-                    model == 11.2)
-ci_03 <- subset(ci_graphic, fg_ts == "03")
-ci_A01_a <- subset(ci_graphic, fg_ts == "A01" &
-                    model == 6.3)
-ci_A01_b <- subset(ci_graphic, fg_ts == "A01" &
-                    model == 19.3)
-ci_A02_a <- subset(ci_graphic, fg_ts == "A02" &
-                     model == 6.2)
-ci_A02_b <- subset(ci_graphic, fg_ts == "A02" &
-                     model == 7.1)
-ci_C02 <- subset(ci_graphic, fg_ts == "C02" &
-                    model == 5.3)
-rm(ci_graphic)
+ci_02_int_9.1 <- subset(ci_graphic, fg_ts == "02" & model == "modint_9.1")
+ci_02_int_9.2 <- subset(ci_graphic, fg_ts == "02" & model == "modint_9.2")
 ```
 
-
-### plot_02_a
-
+plot_02_int_9.1:
 ```{r}
-level_order_02_a <- c('SNH^2*TAP',
-                      'TAP^2',
-                      'TAP',
-                      'SNH^2',
-                      'SNH')
-plot_02_a <-
-  ggplot(data = ci_02_a, aes(
-    y = factor(term, level = level_order_02_a),
+plot_02_int_9.1 <-
+  ggplot(data = ci_02_int_9.1, aes(
+    y = factor(term,
+               level = level_order),
     alpha = spatial_scale,
     colour = factor(significant)
   )) +
@@ -805,104 +755,40 @@ plot_02_a <-
     aspect.ratio = 1.4,
     axis.title.y = element_blank(),
     axis.text.y = element_text(
-      face = c('bold', 'bold', 'bold', 'plain', 'bold'),
-      colour = c(
-        "black",
-        "black",
-        "black",
-        "gray50",
-        "black"
-      )
-    ),
+     face = c('plain'),
+      colour = c("black")),
     legend.position = "none",
     plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
     axis.title = element_text(size = 8),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")
+    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
   ) +
   scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
   scale_color_manual(values = c("gray80", "#0d0887")) +
   labs(x = "95% CI") +
   guides(alpha = guide_legend(reverse = TRUE,
                               title = "Spatial scale (m)"))
-plot_02_a
+plot_02_int_9.1
 ```
 
-### plot_02_b
-
+plot_02_int_9.2:
 ```{r}
-level_order_02_b <- c('arable^2*TAP',
-                      'TAP^2',
-                      'TAP',
-                      'arable^2',
-                      'arable')
-plot_02_b <- ggplot(data = ci_02_b,
-                    aes(
-                      y = factor(term, level = level_order_02_b),
-                      alpha = spatial_scale,
-                      colour = factor(significant)
-                    )) +
-  geom_vline(aes(xintercept = 0),
-             colour = "black",
-             linetype = "dashed",
-             linewidth = 0.25) +
-  geom_errorbarh(aes(xmin = CI_2.5,
-                     xmax = CI_97.5),
-                 position = position_dodge(width = 0.6),
-                 linewidth = 0.3,
-                 height = 0) +
-  theme_classic() +
-  theme(
-    aspect.ratio = 1.4,
-    axis.text.y = element_text(
-      face = c('plain', 'plain', 'bold', 'plain', "bold"),
-      colour = c(
-        "gray50",
-        "gray50",
-        "black",
-        "gray50",
-        "black")),
-    axis.title.y = element_blank(),
-    legend.position = "none",
-    plot.title = element_text(size = 8),
-    axis.text = element_text(size = 7),
-    axis.title = element_text(size = 8),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")
-  ) +
-  scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
-  scale_color_manual(values = c(
-    "gray80",
-    "#0d0887"
+plot_02_int_9.2 <-
+  ggplot(data = ci_02_int_9.2, aes(
+    y = factor(term,
+               level = level_order),
+    alpha = spatial_scale,
+    colour = factor(significant)
   )) +
-  labs(x = "95% CI") +
-  guides(alpha = guide_legend(reverse = TRUE,
-                              title = "Spatial scale (m)"))
-plot_02_b
-```
-
-### plot_03
-
-```{r}
-level_order_03 <- c('MAT^2',
-                    'arable^2',
-                      'MAT',
-                      'arable')
-plot_03 <- ggplot(
-  data = ci_03,
-  aes(y = factor(term, level = level_order_03),
-      alpha = spatial_scale,
-      colour = factor(significant))) +
   geom_vline(
     aes(xintercept = 0),
     colour = "black",
     linetype = "dashed",
     linewidth = 0.2
   ) +
-  geom_errorbarh(aes(xmin = CI_2.5,
+  geom_errorbarh(aes(xmin = CI_2.5, 
                      xmax = CI_97.5),
                  position = position_dodge(width = 0.6),
                  linewidth = 0.3,
@@ -912,109 +798,46 @@ plot_03 <- ggplot(
     aspect.ratio = 1.4,
     axis.title.y = element_blank(),
     axis.text.y = element_text(
-      face = c('bold', 'plain', 'bold', 'bold'),
-      colour = c(
-        "black",
-        "gray50",
-        "black",
-        "black"
-      )
-    ),
+     face = c('plain'),
+      colour = c("black")),
     legend.position = "none",
     plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
     axis.title = element_text(size = 8),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0,0,0,0.8), "cm")
+    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
   ) +
   scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
-  scale_color_manual(values = c("gray80",
-                                "#0d0887")) +
-  scale_x_continuous(breaks = c(-1, 0, 1)) +
-  labs(x = "95% CI") +
-  guides(color = guide_legend(reverse = TRUE,
-                              title = "Spatial scale (m)"))
-plot_03
-```
-
-### plot_A01_a
-
-```{r}
-level_order_A01_a <- c(
-  'SNH*maxT^2',
-  'maxT^2',
-  'maxT',
-  'SNH^2',
-  'SNH'
-)
-plot_A01_a <- ggplot(data = ci_A01_a,
-                    aes(
-                      y = factor(term, level = level_order_A01_a),
-                      alpha = spatial_scale,
-                      colour = factor(significant)
-                    )) +
-  geom_vline(aes(xintercept = 0),
-             colour = "black",
-             linetype = "dashed",
-             linewidth = 0.25) +
-  geom_errorbarh(aes(xmin = CI_2.5,
-                     xmax = CI_97.5),
-                 position = position_dodge(width = 0.6),
-                 linewidth = 0.3,
-                 height = 0) +
-  theme_classic() +
-  theme(
-    aspect.ratio = 1.4,
-    axis.text.y = element_text(
-      face = c('plain', 'plain', 'bold', 'plain', "plain"),
-      colour = c(
-        "gray50",
-        "gray50",
-        "black",
-        "gray50",
-        "gray50")),
-    axis.title.y = element_blank(),
-    legend.position = "none",
-    plot.title = element_text(size = 8),
-    axis.text = element_text(size = 7),
-    axis.title = element_text(size = 8),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")
-  ) +
-  scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
-  scale_color_manual(values = c(
-    "gray80",
-    "#0d0887"
-  )) +
+  scale_color_manual(values = c("gray80", "#0d0887")) +
   labs(x = "95% CI") +
   guides(alpha = guide_legend(reverse = TRUE,
                               title = "Spatial scale (m)"))
-plot_A01_a
+plot_02_int_9.2
 ```
 
-### plot_A01_b
+## Pests
 
 ```{r}
-level_order_A01_b <- c(
-  'edge*maxT^2',
-  'maxT^2',
-  'maxT',
-  'edge^2',
-  'edge'
-)
-plot_A01_b <- ggplot(data = ci_A01_b,
-                    aes(
-                      y = factor(term, level = level_order_A01_b),
-                      alpha = spatial_scale,
-                      colour = factor(significant)
-                    )) +
-  geom_vline(aes(xintercept = 0),
-             colour = "black",
-             linetype = "dashed",
-             linewidth = 0.25) +
-  geom_errorbarh(aes(xmin = CI_2.5,
+ci_03_add_4 <- subset(ci_graphic, fg_ts == "03" & model == "modadd_4")
+```
+
+plot_03_add_4:
+```{r}
+plot_03_add_4 <-
+  ggplot(data = ci_03_add_4, aes(
+    y = factor(term,
+               level = level_order),
+    alpha = spatial_scale,
+    colour = factor(significant)
+  )) +
+  geom_vline(
+    aes(xintercept = 0),
+    colour = "black",
+    linetype = "dashed",
+    linewidth = 0.2
+  ) +
+  geom_errorbarh(aes(xmin = CI_2.5, 
                      xmax = CI_97.5),
                  position = position_dodge(width = 0.6),
                  linewidth = 0.3,
@@ -1022,53 +845,51 @@ plot_A01_b <- ggplot(data = ci_A01_b,
   theme_classic() +
   theme(
     aspect.ratio = 1.4,
-    axis.text.y = element_text(
-      face = c('plain', 'plain', 'bold', 'plain', "plain"),
-      colour = c(
-        "gray50",
-        "gray50",
-        "black",
-        "gray50",
-        "gray50")),
     axis.title.y = element_blank(),
+    axis.text.y = element_text(
+     face = c('plain'),
+      colour = c("black")),
     legend.position = "none",
     plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
     axis.title = element_text(size = 8),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")
+    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
   ) +
   scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
-  scale_color_manual(values = c(
-    "gray80",
-    "#0d0887"
-  )) +
+  scale_color_manual(values = c("gray80", "#0d0887")) +
   labs(x = "95% CI") +
   guides(alpha = guide_legend(reverse = TRUE,
                               title = "Spatial scale (m)"))
-plot_A01_b
+plot_03_add_4
 ```
 
-### plot_A02_a
+## Diet specialist pollinators
 
 ```{r}
-level_order_A02_a <- c('SNH^2*maxT',
-                     'maxT^2',
-                     'maxT',
-                     'SNH^2',
-                     'SNH')
-plot_A02_a <- ggplot(data = ci_A02_a,
-                    aes(
-                      y = factor(term, level = level_order_A02_a),
-                      alpha = spatial_scale,
-                      colour = factor(significant)
-                    )) +
-  geom_vline(aes(xintercept = 0),
-             colour = "black",
-             linetype = "dashed",
-             linewidth = 0.25) +
-  geom_errorbarh(aes(xmin = CI_2.5,
+ci_06_int_3.1 <- subset(ci_graphic, fg_ts == "06" & model == "modint_3.1")
+ci_06_int_7.1 <- subset(ci_graphic, fg_ts == "06" & model == "modint_7.1")
+ci_06_int_7.2 <- subset(ci_graphic, fg_ts == "06" & model == "modint_7.2")
+ci_06_int_7.3 <- subset(ci_graphic, fg_ts == "06" & model == "modint_7.3")
+```
+
+plot_06_int_3.1:
+```{r}
+plot_06_int_3.1 <-
+  ggplot(data = ci_06_int_3.1, aes(
+    y = factor(term,
+               level = level_order),
+    alpha = spatial_scale,
+    colour = factor(significant)
+  )) +
+  geom_vline(
+    aes(xintercept = 0),
+    colour = "black",
+    linetype = "dashed",
+    linewidth = 0.2
+  ) +
+  geom_errorbarh(aes(xmin = CI_2.5, 
                      xmax = CI_97.5),
                  position = position_dodge(width = 0.6),
                  linewidth = 0.3,
@@ -1076,55 +897,43 @@ plot_A02_a <- ggplot(data = ci_A02_a,
   theme_classic() +
   theme(
     aspect.ratio = 1.4,
-    axis.text.y = element_text(
-      face = c('bold', 'plain', 'bold', 'bold', "bold"),
-      colour = c(
-        "black",
-        "gray50",
-        "black",
-        "black",
-        "black")),
     axis.title.y = element_blank(),
+    axis.text.y = element_text(
+     face = c('plain'),
+      colour = c("black")),
     legend.position = "none",
     plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
     axis.title = element_text(size = 8),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")
+    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
   ) +
   scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
-  scale_color_manual(values = c(
-    "gray80",
-    "#0d0887"
-  )) +
-  scale_x_continuous(breaks = c(-1, 0, 1)) +
+  scale_color_manual(values = c("gray80", "#0d0887")) +
   labs(x = "95% CI") +
   guides(alpha = guide_legend(reverse = TRUE,
                               title = "Spatial scale (m)"))
-plot_A02_a
+plot_06_int_3.1
 ```
 
-
-### plot_A02_b
-
+plot_06_int_7.1:
 ```{r}
-level_order_A02_b <- c('SNH*MAT',
-                     'MAT^2',
-                     'MAT',
-                     'SNH^2',
-                     'SNH')
-plot_A02_b <- ggplot(data = ci_A02_b,
-                    aes(
-                      y = factor(term, level = level_order_A02_b),
-                      alpha = spatial_scale,
-                      colour = factor(significant)
-                    )) +
-  geom_vline(aes(xintercept = 0),
-             colour = "black",
-             linetype = "dashed",
-             linewidth = 0.25) +
-  geom_errorbarh(aes(xmin = CI_2.5,
+plot_06_int_7.1 <-
+  ggplot(data = ci_06_int_7.1, aes(
+    y = factor(term,
+               level = level_order
+               ),
+    alpha = spatial_scale,
+    colour = factor(significant)
+  )) +
+  geom_vline(
+    aes(xintercept = 0),
+    colour = "black",
+    linetype = "dashed",
+    linewidth = 0.2
+  ) +
+  geom_errorbarh(aes(xmin = CI_2.5, 
                      xmax = CI_97.5),
                  position = position_dodge(width = 0.6),
                  linewidth = 0.3,
@@ -1132,49 +941,43 @@ plot_A02_b <- ggplot(data = ci_A02_b,
   theme_classic() +
   theme(
     aspect.ratio = 1.4,
-    axis.text.y = element_text(
-      face = c('bold', 'plain', 'bold', 'plain', "bold"),
-      colour = c(
-        "black",
-        "gray50",
-        "black",
-        "gray50",
-        "black")),
     axis.title.y = element_blank(),
+    axis.text.y = element_text(
+     face = c('plain'),
+      colour = c("black")),
     legend.position = "none",
     plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
     axis.title = element_text(size = 8),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")
+    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
   ) +
   scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
-  scale_color_manual(values = c(
-    "gray80",
-    "#0d0887"
-  )) +
+  scale_color_manual(values = c("gray80", "#0d0887")) +
   labs(x = "95% CI") +
   guides(alpha = guide_legend(reverse = TRUE,
                               title = "Spatial scale (m)"))
-plot_A02_b
+plot_06_int_7.1
 ```
 
-### plot_C02
-
+plot_06_int_7.2:
 ```{r}
-level_order_C02 <- c('SNH*minT^2', 'minT^2', 'minT', 'SNH^2', 'SNH')
-plot_C02 <- ggplot(data = ci_C02,
-                    aes(
-                      y = factor(term, level = level_order_C02),
-                      alpha = spatial_scale,
-                      colour = factor(significant)
-                    )) +
-  geom_vline(aes(xintercept = 0),
-             colour = "black",
-             linetype = "dashed",
-             linewidth = 0.25) +
-  geom_errorbarh(aes(xmin = CI_2.5,
+plot_06_int_7.2 <-
+  ggplot(data = ci_06_int_7.2, aes(
+    y = factor(term,
+               level = level_order
+               ),
+    alpha = spatial_scale,
+    colour = factor(significant)
+  )) +
+  geom_vline(
+    aes(xintercept = 0),
+    colour = "black",
+    linetype = "dashed",
+    linewidth = 0.2
+  ) +
+  geom_errorbarh(aes(xmin = CI_2.5, 
                      xmax = CI_97.5),
                  position = position_dodge(width = 0.6),
                  linewidth = 0.3,
@@ -1182,225 +985,250 @@ plot_C02 <- ggplot(data = ci_C02,
   theme_classic() +
   theme(
     aspect.ratio = 1.4,
-    axis.text.y = element_text(
-      face = c('bold', 'plain', 'plain', 'plain', "bold"),
-      colour = c(
-        "black",
-        "gray50",
-        "gray50",
-        "gray50",
-        "black")),
     axis.title.y = element_blank(),
+    axis.text.y = element_text(
+     face = c('plain'),
+      colour = c("black")),
     legend.position = "none",
     plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
     axis.title = element_text(size = 8),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")
+    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
   ) +
   scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
-  scale_color_manual(values = c(
-    "gray80",
-    "#0d0887"
-  )) +
+  scale_color_manual(values = c("gray80", "#0d0887")) +
   labs(x = "95% CI") +
   guides(alpha = guide_legend(reverse = TRUE,
                               title = "Spatial scale (m)"))
-plot_C02
+plot_06_int_7.2
+```
+
+plot_06_int_7.3:
+```{r}
+plot_06_int_7.3 <-
+  ggplot(data = ci_06_int_7.3, aes(
+    y = factor(term,
+               level = level_order
+               ),
+    alpha = spatial_scale,
+    colour = factor(significant)
+  )) +
+  geom_vline(
+    aes(xintercept = 0),
+    colour = "black",
+    linetype = "dashed",
+    linewidth = 0.2
+  ) +
+  geom_errorbarh(aes(xmin = CI_2.5, 
+                     xmax = CI_97.5),
+                 position = position_dodge(width = 0.6),
+                 linewidth = 0.3,
+                 height = 0) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1.4,
+    axis.title.y = element_blank(),
+    axis.text.y = element_text(
+     face = c('plain'),
+      colour = c("black")),
+    legend.position = "none",
+    plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.title = element_text(size = 8),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
+  ) +
+  scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
+  scale_color_manual(values = c("gray80", "#0d0887")) +
+  labs(x = "95% CI") +
+  guides(alpha = guide_legend(reverse = TRUE,
+                              title = "Spatial scale (m)"))
+plot_06_int_7.3
+```
+
+## Habitat specialist pest
+
+```{r}
+ci_08_int_5.3 <- subset(ci_graphic, fg_ts == "08" & model == "modint_5.3")
+```
+
+plot_08_int_5.3:
+```{r}
+plot_08_int_5.3 <-
+  ggplot(data = ci_08_int_5.3, aes(
+    y = factor(term,
+               level = level_order),
+    alpha = spatial_scale,
+    colour = factor(significant)
+  )) +
+  geom_vline(
+    aes(xintercept = 0),
+    colour = "black",
+    linetype = "dashed",
+    linewidth = 0.2
+  ) +
+  geom_errorbarh(aes(xmin = CI_2.5, 
+                     xmax = CI_97.5),
+                 position = position_dodge(width = 0.6),
+                 linewidth = 0.3,
+                 height = 0) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1.4,
+    axis.title.y = element_blank(),
+    axis.text.y = element_text(
+     face = c('plain'),
+      colour = c("black")),
+    legend.position = "none",
+    plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.title = element_text(size = 8),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
+  ) +
+  scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
+  scale_color_manual(values = c("gray80", "#0d0887")) +
+  labs(x = "95% CI") +
+  guides(alpha = guide_legend(reverse = TRUE,
+                              title = "Spatial scale (m)"))
+plot_08_int_5.3
 ```
 
 # Figure 5
 
-## 02. Pollinators
+## Pollinators
 
 Data frame:
 ```{r}
-climate_land_abund_02_250 <-
+climate_land_abund_02_500 <-
   climate_land_abund %>%
   filter(Pollinator_study == 1) %>%
   dplyr::select(
     fg_pollinator_abund_scaled,
-    semi_250,
-    edge_250,
-    arable_250,
-    min_precip,
-    max_precip,
+    semi_500,
+    edge_500,
+    arable_500,
     TAP,
+    MAT,
     min_temp,
     max_temp,
-    MAT,
     StudyID_yr,
     Sampling_method,
-    Block
+    Block,
+    Latitude,
+    Longitude
   ) %>%
   ungroup() %>%
   na.omit() %>%
-  poly_add_columns(semi_250, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(edge_250, degree = 2, prefix = "edge_") %>%
-  poly_add_columns(arable_250, degree = 2, prefix = "arable_") %>%
-  poly_add_columns(min_precip, degree = 2, prefix = "min_precip_") %>%
-  poly_add_columns(max_precip, degree = 2, prefix = "max_precip_") %>%
+  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
+  poly_add_columns(edge_500, degree = 2, prefix = "edge_") %>%
+  poly_add_columns(arable_500, degree = 2, prefix = "arable_") %>%
   poly_add_columns(TAP, degree = 2, prefix = "TAP_") %>%
   poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
   poly_add_columns(min_temp, degree = 2, prefix = "min_temp_") %>%
   poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>%
   mutate(
-    fg_02_l = log(fg_pollinator_abund_scaled + 1),
-    semi_1_l = log(semi_1 + 1),
-    semi_2_l = log(semi_2 + 1),
-    edge_1_l = log(edge_1 + 1),
-    edge_2_l = log(edge_2 + 1),
-    arable_1_l = log(arable_1 + 1),
-    arable_2_l = log(arable_2 + 1),
-    TAP_1_l = log(TAP_1 + 1),
-    TAP_2_l = log(TAP_2 + 1),
-    min_precip_1_l = log(min_precip_1 + 1),
-    min_precip_2_l = log(min_precip_2 + 1),
-    max_precip_1_l = log(max_precip_1 + 1),
-    max_precip_2_l = log(max_precip_2 + 1),
-    MAT_1_l = log(MAT_1 + 1),
-    MAT_2_l = log(MAT_2 + 1),
-    min_temp_1_l = log(min_temp_1 + 1),
-    min_temp_2_l = log(min_temp_2 + 1),
-    max_temp_1_l = log(max_temp_1 + 1),
-    max_temp_2_l = log(max_temp_2 + 1)
+    fg_02_l = log1p(fg_pollinator_abund_scaled),
+    semi_1_l = log1p(semi_1),
+    semi_2_l = log1p(semi_2),
+    edge_1_l = log1p(edge_1),
+    edge_2_l = log1p(edge_2),
+    arable_1_l = log1p(arable_1),
+    arable_2_l = log1p(arable_2),
+    TAP_1_l = log1p(TAP_1),
+    TAP_2_l = log1p(TAP_2),
+    MAT_1_l = log1p(MAT_1),
+    MAT_2_l = log1p(MAT_2),
+    min_temp_1_l = log1p(min_temp_1),
+    min_temp_2_l = log1p(min_temp_2),
+    max_temp_1_l = log1p(max_temp_1),
+    max_temp_2_l = log1p(max_temp_2)
   )
 ```
 
-Data frame:
-```{r}
-climate_land_abund_02_2000 <-
-  climate_land_abund %>%
-  filter(Pollinator_study == 1) %>%
-  dplyr::select(
-    fg_pollinator_abund_scaled,
-    semi_2000,
-    edge_2000,
-    arable_2000,
-    min_precip,
-    max_precip,
-    TAP,
-    min_temp,
-    max_temp,
-    MAT,
-    StudyID_yr,
-    Sampling_method,
-    Block
-  ) %>%
-  ungroup() %>%
-  na.omit() %>%
-  poly_add_columns(semi_2000, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(edge_2000, degree = 2, prefix = "edge_") %>%
-  poly_add_columns(arable_2000, degree = 2, prefix = "arable_") %>%
-  poly_add_columns(min_precip, degree = 2, prefix = "min_precip_") %>%
-  poly_add_columns(max_precip, degree = 2, prefix = "max_precip_") %>%
-  poly_add_columns(TAP, degree = 2, prefix = "TAP_") %>%
-  poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
-  poly_add_columns(min_temp, degree = 2, prefix = "min_temp_") %>%
-  poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>%
-  mutate(
-    fg_02_l = log(fg_pollinator_abund_scaled + 1),
-    semi_1_l = log(semi_1 + 1),
-    semi_2_l = log(semi_2 + 1),
-    edge_1_l = log(edge_1 + 1),
-    edge_2_l = log(edge_2 + 1),
-    arable_1_l = log(arable_1 + 1),
-    arable_2_l = log(arable_2 + 1),
-    TAP_1_l = log(TAP_1 + 1),
-    TAP_2_l = log(TAP_2 + 1),
-    min_precip_1_l = log(min_precip_1 + 1),
-    min_precip_2_l = log(min_precip_2 + 1),
-    max_precip_1_l = log(max_precip_1 + 1),
-    max_precip_2_l = log(max_precip_2 + 1),
-    MAT_1_l = log(MAT_1 + 1),
-    MAT_2_l = log(MAT_2 + 1),
-    min_temp_1_l = log(min_temp_1 + 1),
-    min_temp_2_l = log(min_temp_2 + 1),
-    max_temp_1_l = log(max_temp_1 + 1),
-    max_temp_2_l = log(max_temp_2 + 1)
-  )
-```
-
-### heatmap_02a
+### heatmap_02
 
 ```{r}
-climate_land_abund_02_250 <- climate_land_abund_02_250 %>%
+climate_land_abund_02_500 <- climate_land_abund_02_500 %>%
   mutate(
-    semi_250_l = log(semi_250 + 1),
-    TAP_l = log(TAP + 1)
+    semi_500_l = log1p(semi_500),
+    TAP_l = log1p(TAP)
   )
 
-plot_02_250_dat_hull <- climate_land_abund_02_250 %>%
-  slice(chull(semi_250_l, TAP_l))
+plot_02_500_dat_hull <- climate_land_abund_02_500 %>%
+  slice(chull(semi_500_l, TAP_l))
 
-plot_02_250_dat_hull <- plot_02_250_dat_hull %>%
-  dplyr::select(semi_250_l, TAP_l)
+plot_02_500_dat_hull <- plot_02_500_dat_hull %>%
+  dplyr::select(semi_500_l, TAP_l)
 
-plot_02_250_dat_hull_sf <- plot_02_250_dat_hull %>%
-  st_as_sf(coords = c("semi_250_l", "TAP_l")) %>%
+plot_02_500_dat_hull_sf <- plot_02_500_dat_hull %>%
+  st_as_sf(coords = c("semi_500_l", "TAP_l")) %>%
   summarise() %>%
   st_cast("POLYGON") %>%
   st_convex_hull()
 
-plot_02_250_dat_xy <-
-  with(climate_land_abund_02_250,
+plot_02_500_dat_xy <-
+  with(climate_land_abund_02_500,
        expand.grid(
-         semi_250_l = seq(min(semi_250_l),
-                        max(semi_250_l),
+         semi_500_l = seq(min(semi_500_l),
+                        max(semi_500_l),
                         len = 400),
          TAP_l = seq(min(TAP_l),
                         max(TAP_l),
                         len = 400)
        ))
 
-plot_02_250_dat_xy_sf = st_as_sf(
-  plot_02_250_dat_xy,
-  coords = c("semi_250_l", "TAP_l"))
+plot_02_500_dat_xy_sf = st_as_sf(
+  plot_02_500_dat_xy,
+  coords = c("semi_500_l", "TAP_l"))
 
 plot_02_crop <-
   st_intersection(
-    plot_02_250_dat_xy_sf,
-    plot_02_250_dat_hull_sf) %>%
+    plot_02_500_dat_xy_sf,
+    plot_02_500_dat_hull_sf) %>%
   st_coordinates() %>%
   as.data.frame() %>%
-  rename(semi_250_l = X, TAP_l = Y)
+  rename(semi_500_l = X, TAP_l = Y)
 
 plot_02_crop <- plot_02_crop %>%
   mutate(
-    semi_250 = (exp(semi_250_l) - 1),
-    TAP = (exp(TAP_l) - 1)
+    semi_500 = (expm1(semi_500_l)),
+    TAP = (expm1(TAP_l))
   ) %>%
-  poly_add_columns(semi_250, degree = 2, prefix = "semi_") %>%
+  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
   poly_add_columns(TAP, degree = 2, prefix = "TAP_") %>%
   mutate(
-    semi_1_l = log(semi_1 + 1),
-    semi_2_l = log(semi_2 + 1),
-    TAP_1_l = log(TAP_1 + 1),
-    TAP_2_l = log(TAP_2 + 1)
+    semi_1_l = log1p(semi_1),
+    semi_2_l = log1p(semi_2),
+    TAP_1_l = log1p(TAP_1),
+    TAP_2_l = log1p(TAP_2)
   )
 
-mod <- lmer(
+mod_02 <- lmer(
   fg_02_l ~
     semi_2_l * TAP_1_l +
-    semi_1_l + TAP_2_l +
+    semi_1_l + TAP_1_l +
+    semi_2_l + TAP_2_l +
     (1 | StudyID_yr) +
-    # (1 | StudyID_yr:Sampling_method) +
     (1 | StudyID_yr:Sampling_method:Block),
-  data = climate_land_abund_02_250
+  data = climate_land_abund_02_500
 )
 
 plot_02_crop$fg_02_l <-
-  c(predict(mod, newdata = plot_02_crop, se = F, re.form = NA))
+  c(predict(mod_02, newdata = plot_02_crop, se = F, re.form = NA))
 
-heatmap_02a <- ggplot() +
+heatmap_02 <- ggplot() +
   geom_raster(data = plot_02_crop,
-              aes(x = semi_250_l,
+              aes(x = semi_500_l,
                   y = TAP_l,
                   fill = fg_02_l)) +
   geom_contour(
     data = plot_02_crop,
-    aes(x = semi_250_l,
+    aes(x = semi_500_l,
         y = TAP_l,
         z = fg_02_l),
     color = 'white',
@@ -1412,12 +1240,12 @@ heatmap_02a <- ggplot() +
     breaks = c(2.7, 3.0, 3.3, 3.6)
     ) +
   scale_y_continuous(
-    breaks = c(log(1 + 500), log(1 + 1000), log(1 + 2000), log(1 + 3000)),
+    breaks = c(log1p(500), log1p(1000), log1p(2000), log1p(3000)),
     labels = c(500, 1000, 2000, 3000)
     ) +
   scale_x_continuous(
-    breaks = c(log(1 + 0), log(1 + 2), log(1 + 10), log(1 + 25), log(1 + 60)),
-    labels = c(0, 2, 10, 25, 60)
+    breaks = c(log1p(0), log1p(2), log1p(10), log1p(30), log1p(80)),
+    labels = c(0, 2, 10, 30, 80)
     ) +
   theme_classic() +
   theme(
@@ -1437,262 +1265,139 @@ heatmap_02a <- ggplot() +
   ) +
   labs(
     fill = "Abundance",
-       x = "SNH (%) in 0.25 km",
+       x = "SNH (%) in 0.5 km",
        y = "TAP (cm)")
-heatmap_02a
+heatmap_02
 ```
 
-### heatmap_02b
-
-```{r}
-climate_land_abund_02_2000 <- climate_land_abund_02_2000 %>%
-  mutate(
-    arable_2000_l = log(1 + arable_2000),
-    TAP_l = log(1 + TAP)
-  )
-
-plot_02b_2000_dat_hull <- climate_land_abund_02_2000 %>%
-  slice(chull(arable_2000_l, TAP_l))
-
-plot_02b_2000_dat_hull <- plot_02b_2000_dat_hull %>%
-  dplyr::select(arable_2000_l, TAP_l)
-plot_02b_2000_dat_hull_sf <-
-  plot_02b_2000_dat_hull %>% st_as_sf(
-    coords = c("arable_2000_l", "TAP_l")) %>%
-  summarise() %>%
-  st_cast("POLYGON") %>%
-  st_convex_hull()
-
-plot_02b_2000_dat_xy <-
-  with(climate_land_abund_02_2000,
-       expand.grid(
-         arable_2000_l = seq(min(arable_2000_l),
-                        max(arable_2000_l),
-                        len = 400),
-         TAP_l = seq(min(TAP_l),
-                        max(TAP_l),
-                        len = 400)))
-
-plot_02b_2000_dat_xy_sf = st_as_sf(plot_02b_2000_dat_xy,
-                                 coords = c("arable_2000_l", "TAP_l"))
-plot_02b_crop <-
-  st_intersection(
-    plot_02b_2000_dat_xy_sf,
-    plot_02b_2000_dat_hull_sf) %>%
-  st_coordinates() %>%
-  as.data.frame() %>%
-  rename(arable_2000_l = X,
-         TAP_l = Y)
-
-plot_02b_crop <- plot_02b_crop %>%
-  mutate(
-    arable_2000 = (exp(arable_2000_l) - 1),
-    TAP = (exp(TAP_l) - 1)
-  ) %>%
-  poly_add_columns(arable_2000, degree = 2, prefix = "arable_") %>%
-  poly_add_columns(TAP, degree = 2, prefix = "TAP_") %>%
-  mutate(
-    arable_1_l = log(arable_1 + 1),
-    arable_2_l = log(arable_2 + 1),
-    TAP_1_l = log(TAP_1 + 1),
-    TAP_2_l = log(TAP_2 + 1)
-  )
-
-mod <- lmer(
-  fg_02_l ~
-    arable_2_l * TAP_1_l +
-    arable_1_l + TAP_2_l +
-    (1 | StudyID_yr) +
-    # (1 | StudyID_yr:Sampling_method) +
-    (1 | StudyID_yr:Sampling_method:Block),
-  data = climate_land_abund_02_2000
-)
-
-plot_02b_crop$fg_02_l <-
-  c(predict(mod, newdata = plot_02b_crop, se = FALSE, re.form = NA))
-
-heatmap_02b <- ggplot() +
-  geom_raster(data = plot_02b_crop,
-              aes(x = arable_2000_l,
-                  y = TAP_l,
-                  fill = fg_02_l)) +
-  geom_contour(
-    data = plot_02b_crop,
-    aes(x = arable_2000_l,
-        y = TAP_l,
-        z = fg_02_l),
-    color = 'white',
-    alpha = 0.5
-  ) +
-  scale_fill_viridis_c(
-    option = "plasma",
-    alpha = 1,
-    breaks = c(2.4, 2.7, 3.0, 3.3, 3.6)
-    ) +
-  scale_x_continuous(
-    breaks = c(log(1 + 5), log(1 + 10), log(1 + 20), log(1 + 40), log(1 + 80)),
-    labels = c(5, 10, 20, 40, 80)) +
-  scale_y_continuous(
-    breaks = c(log(1 + 500), log(1 + 750), log(1 + 1000), log(1 + 1250), log(1 + 1500)),
-    labels = c(500, 750, 1000, 1250, 1500)) +
-  theme_classic() +
-  theme(
-    aspect.ratio = 1,
-    plot.title = element_text(size = 8),
-    axis.text = element_text(size = 7),
-    axis.title = element_text(size = 8),
-    legend.text = element_text(size = 7),
-    legend.position = "right",
-    legend.title = element_blank(),
-    legend.key.width = unit(0.25, "cm"),
-    legend.key.height = unit(0.25, "cm"),
-    legend.box.spacing = unit(0.25, "pt"),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")
-  ) +
-  labs(
-    fill = "Abundance",
-       x = "Arable (%) in 2 km",
-       y = "TAP (cm)")
-heatmap_02b
-```
-
-## 03. Pests
+## Pests
 
 Data frame:
 ```{r}
-climate_land_abund_03_250 <-
+climate_land_abund_03_500 <-
   climate_land_abund %>%
   filter(Pest_study == 1) %>%
   dplyr::select(
     fg_pest_abund_scaled,
-    semi_250,
-    edge_250,
-    arable_250,
-    min_precip,
-    max_precip,
+    semi_500,
+    edge_500,
+    arable_500,
     TAP,
+    MAT,
     min_temp,
     max_temp,
-    MAT,
     StudyID_yr,
     Sampling_method,
-    Block
+    Block,
+    Latitude,
+    Longitude
   ) %>%
   ungroup() %>%
   na.omit() %>%
-  poly_add_columns(semi_250, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(edge_250, degree = 2, prefix = "edge_") %>%
-  poly_add_columns(arable_250, degree = 2, prefix = "arable_") %>%
-  poly_add_columns(min_precip, degree = 2, prefix = "min_precip_") %>%
-  poly_add_columns(max_precip, degree = 2, prefix = "max_precip_") %>%
+  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
+  poly_add_columns(edge_500, degree = 2, prefix = "edge_") %>%
+  poly_add_columns(arable_500, degree = 2, prefix = "arable_") %>%
   poly_add_columns(TAP, degree = 2, prefix = "TAP_") %>%
   poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
   poly_add_columns(min_temp, degree = 2, prefix = "min_temp_") %>%
-  poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>% 
+  poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>%
   mutate(
-    fg_03_l = log(fg_pest_abund_scaled + 1),
-    semi_1_l = log(semi_1 + 1),
-    semi_2_l = log(semi_2 + 1),
-    edge_1_l = log(edge_1 + 1),
-    edge_2_l = log(edge_2 + 1),
-    arable_1_l = log(arable_1 + 1),
-    arable_2_l = log(arable_2 + 1),
-    TAP_1_l = log(TAP_1 + 1),
-    TAP_2_l = log(TAP_2 + 1),
-    min_precip_1_l = log(min_precip_1 + 1),
-    min_precip_2_l = log(min_precip_2 + 1),
-    max_precip_1_l = log(max_precip_1 + 1),
-    max_precip_2_l = log(max_precip_2 + 1),
-    MAT_1_l = log(MAT_1 + 1),
-    MAT_2_l = log(MAT_2 + 1),
-    min_temp_1_l = log(min_temp_1 + 1),
-    min_temp_2_l = log(min_temp_2 + 1),
-    max_temp_1_l = log(max_temp_1 + 1),
-    max_temp_2_l = log(max_temp_2 + 1)
+    fg_03_l = log1p(fg_pest_abund_scaled),
+    semi_1_l = log1p(semi_1),
+    semi_2_l = log1p(semi_2),
+    edge_1_l = log1p(edge_1),
+    edge_2_l = log1p(edge_2),
+    arable_1_l = log1p(arable_1),
+    arable_2_l = log1p(arable_2),
+    TAP_1_l = log1p(TAP_1),
+    TAP_2_l = log1p(TAP_2),
+    MAT_1_l = log1p(MAT_1),
+    MAT_2_l = log1p(MAT_2),
+    min_temp_1_l = log1p(min_temp_1),
+    min_temp_2_l = log1p(min_temp_2),
+    max_temp_1_l = log1p(max_temp_1),
+    max_temp_2_l = log1p(max_temp_2)
   )
 ```
 
 ### heatmap_03
 
-```{r fig.height=2.5, fig.width=4}
-climate_land_abund_03_250 <- climate_land_abund_03_250 %>%
+```{r}
+climate_land_abund_03_500 <- climate_land_abund_03_500 %>%
   mutate(
-    arable_250_l = log(1 + arable_250),
-    MAT_l = log(1 + MAT)
+    arable_500_l = log1p(arable_500),
+    MAT_l = log1p(MAT)
   )
 
-plot_03_250_dat_hull <- climate_land_abund_03_250 %>%
-  slice(chull(arable_250_l, MAT_l))
+plot_03_500_dat_hull <- climate_land_abund_03_500 %>%
+  slice(chull(arable_500_l, MAT_l))
 
-plot_03_250_dat_hull <- plot_03_250_dat_hull %>%
-  dplyr::select(arable_250_l, MAT_l)
+plot_03_500_dat_hull <- plot_03_500_dat_hull %>%
+  dplyr::select(arable_500_l, MAT_l)
 
-plot_03_250_dat_hull_sf <- plot_03_250_dat_hull %>%
-  st_as_sf(coords = c("arable_250_l", "MAT_l")) %>%
+plot_03_500_dat_hull_sf <- plot_03_500_dat_hull %>%
+  st_as_sf(coords = c("arable_500_l", "MAT_l")) %>%
   summarise() %>%
   st_cast("POLYGON") %>%
   st_convex_hull()
 
-plot_03_250_dat_xy <-
-  with(climate_land_abund_03_250,
+plot_03_500_dat_xy <-
+  with(climate_land_abund_03_500,
        expand.grid(
-         arable_250_l = seq(min(arable_250_l),
-                        max(arable_250_l),
+         arable_500_l = seq(min(arable_500_l),
+                        max(arable_500_l),
                         len = 400),
          MAT_l = seq(min(MAT_l),
                         max(MAT_l),
                         len = 400)
        ))
 
-plot_03_250_dat_xy_sf = st_as_sf(
-  plot_03_250_dat_xy,
-  coords = c("arable_250_l", "MAT_l"))
+plot_03_500_dat_xy_sf = st_as_sf(
+  plot_03_500_dat_xy,
+  coords = c("arable_500_l", "MAT_l"))
 
 plot_03_crop <-
   st_intersection(
-    plot_03_250_dat_xy_sf,
-    plot_03_250_dat_hull_sf) %>%
+    plot_03_500_dat_xy_sf,
+    plot_03_500_dat_hull_sf) %>%
   st_coordinates() %>%
   as.data.frame() %>%
-  rename(arable_250_l = X, MAT_l = Y)
+  rename(arable_500_l = X, MAT_l = Y)
 
 plot_03_crop <- plot_03_crop %>%
   mutate(
-    arable_250 = (exp(arable_250_l) - 1),
-    MAT = (exp(MAT_l) - 1)
+    arable_500 = (expm1(arable_500_l)),
+    MAT = (expm1(MAT_l))
   ) %>%
-  poly_add_columns(arable_250, degree = 2, prefix = "arable_") %>%
+  poly_add_columns(arable_500, degree = 2, prefix = "arable_") %>%
   poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
   mutate(
-    arable_1_l = log(arable_1 + 1),
-    arable_2_l = log(arable_2 + 1),
-    MAT_1_l = log(MAT_1 + 1),
-    MAT_2_l = log(MAT_2 + 1)
+    arable_1_l = log1p(arable_1),
+    arable_2_l = log1p(arable_2),
+    MAT_1_l = log1p(MAT_1),
+    MAT_2_l = log1p(MAT_2)
   )
 
-mod <- lmer(
+mod_03 <- lmer(
   fg_03_l ~
     arable_1_l + MAT_1_l +
     arable_2_l + MAT_2_l +
     (1 | StudyID_yr) +
-    # (1 | StudyID_yr:Sampling_method) +
     (1 | StudyID_yr:Sampling_method:Block),
-  data = climate_land_abund_03_250
+  data = climate_land_abund_03_500
 )
 
 plot_03_crop$fg_03_l <-
-  c(predict(mod, newdata = plot_03_crop, se = FALSE, re.form = NA))
+  c(predict(mod_03, newdata = plot_03_crop, se = F, re.form = NA))
 
 heatmap_03 <- ggplot() +
   geom_raster(data = plot_03_crop,
-              aes(x = arable_250_l,
+              aes(x = arable_500_l,
                   y = MAT_l,
                   fill = fg_03_l)) +
   geom_contour(
     data = plot_03_crop,
-    aes(x = arable_250_l,
+    aes(x = arable_500_l,
         y = MAT_l,
         z = fg_03_l),
     color = 'white',
@@ -1703,20 +1408,22 @@ heatmap_03 <- ggplot() +
     alpha = 1,
     breaks = c(2.3, 2.6, 2.9, 3.2)
     ) +
-  scale_x_continuous(
-    breaks = c(log(1 + 0), log(1 + 2), log(1 + 10), log(1 + 25), log(1 + 60)),
-    labels = c(0, 2, 10, 25, 60)) +
   scale_y_continuous(
     breaks = c(
-      log(1 + 280.15), 
-      log(1 + 283.15),
-      log(1 + 286.15),
-      log(1 + 289.15)),
-    labels = c(7, 10, 13, 16)) +
+      log1p(7 + 273.15), 
+      log1p(10 + 273.15), 
+      log1p(13 + 273.15), 
+      log1p(16 + 273.15)),
+    labels = c(7, 10, 13, 16)
+    ) +
+  scale_x_continuous(
+    breaks = c(log1p(0), log1p(5), log1p(20), log1p(40), log1p(60), log1p(80)),
+    labels = c(0, 5, 20, 40, 60, 80)
+    ) +
   theme_classic() +
   theme(
     aspect.ratio = 1,
-    plot.title = element_text(size = 8),
+    # plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
     axis.title = element_text(size = 8),
     legend.text = element_text(size = 7),
@@ -1731,287 +1438,166 @@ heatmap_03 <- ggplot() +
   ) +
   labs(
     fill = "Abundance",
-       x = "Arable (%) in 0.25 km",
+       x = "Arable (%) in 0.5 km",
        y = "MAT (°C)")
 heatmap_03
 ```
 
-## A02. Pollinator ts
+## Diet specialist pollinators
 
 Data frame:
 ```{r}
-climate_land_abund_A02_250 <-
+climate_land_abund_06_500 <-
   climate_land_abund %>%
   filter(Pollinator_study == 1) %>%
   dplyr::select(
     ts_poll_spec_flight_noncrop_abund_scaled,
-    semi_250,
-    edge_250,
-    arable_250,
-    min_precip,
-    max_precip,
+    semi_500,
+    edge_500,
+    arable_500,
     TAP,
+    MAT,
     min_temp,
     max_temp,
-    MAT,
     StudyID_yr,
     Sampling_method,
-    Block
+    Block,
+    Latitude,
+    Longitude
   ) %>%
   ungroup() %>%
   na.omit() %>%
-  poly_add_columns(semi_250, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(edge_250, degree = 2, prefix = "edge_") %>%
-  poly_add_columns(arable_250, degree = 2, prefix = "arable_") %>%
-  poly_add_columns(min_precip, degree = 2, prefix = "min_precip_") %>%
-  poly_add_columns(max_precip, degree = 2, prefix = "max_precip_") %>%
+  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
+  poly_add_columns(edge_500, degree = 2, prefix = "edge_") %>%
+  poly_add_columns(arable_500, degree = 2, prefix = "arable_") %>%
   poly_add_columns(TAP, degree = 2, prefix = "TAP_") %>%
   poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
   poly_add_columns(min_temp, degree = 2, prefix = "min_temp_") %>%
   poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>%
   mutate(
-    ts_A02_l = log(ts_poll_spec_flight_noncrop_abund_scaled + 1),
-    semi_1_l = log(semi_1 + 1),
-    semi_2_l = log(semi_2 + 1),
-    edge_1_l = log(edge_1 + 1),
-    edge_2_l = log(edge_2 + 1),
-    arable_1_l = log(arable_1 + 1),
-    arable_2_l = log(arable_2 + 1),
-    TAP_1_l = log(TAP_1 + 1),
-    TAP_2_l = log(TAP_2 + 1),
-    min_precip_1_l = log(min_precip_1 + 1),
-    min_precip_2_l = log(min_precip_2 + 1),
-    max_precip_1_l = log(max_precip_1 + 1),
-    max_precip_2_l = log(max_precip_2 + 1),
-    MAT_1_l = log(MAT_1 + 1),
-    MAT_2_l = log(MAT_2 + 1),
-    min_temp_1_l = log(min_temp_1 + 1),
-    min_temp_2_l = log(min_temp_2 + 1),
-    max_temp_1_l = log(max_temp_1 + 1),
-    max_temp_2_l = log(max_temp_2 + 1)
+    ts_06_l = log1p(ts_poll_spec_flight_noncrop_abund_scaled),
+    semi_1_l = log1p(semi_1),
+    semi_2_l = log1p(semi_2),
+    edge_1_l = log1p(edge_1),
+    edge_2_l = log1p(edge_2),
+    arable_1_l = log1p(arable_1),
+    arable_2_l = log1p(arable_2),
+    TAP_1_l = log1p(TAP_1),
+    TAP_2_l = log1p(TAP_2),
+    MAT_1_l = log1p(MAT_1),
+    MAT_2_l = log1p(MAT_2),
+    min_temp_1_l = log1p(min_temp_1),
+    min_temp_2_l = log1p(min_temp_2),
+    max_temp_1_l = log1p(max_temp_1),
+    max_temp_2_l = log1p(max_temp_2)
   )
 ```
 
-### heatmap_A02_a
+### heatmap_06_a
 
-```{r fig.height=2.5, fig.width=4}
-climate_land_abund_A02_250 <- climate_land_abund_A02_250 %>%
+```{r}
+climate_land_abund_06_500 <- climate_land_abund_06_500 %>%
   mutate(
-    semi_250_l = log(semi_250 + 1),
-    max_temp_l = log(max_temp + 1)
+    semi_500_l = log1p(semi_500),
+    MAT_l = log1p(MAT)
   )
 
-plot_A02_250_dat_hull <- climate_land_abund_A02_250 %>%
-  slice(chull(semi_250_l, max_temp_l))
-plot_A02_250_dat_hull <- plot_A02_250_dat_hull %>%
-  dplyr::select(semi_250_l, max_temp_l)
-plot_A02_250_dat_hull_sf <-
-  plot_A02_250_dat_hull %>% st_as_sf(coords = c("semi_250_l", "max_temp_l")) %>%
+plot_06_500_dat_hull <- climate_land_abund_06_500 %>%
+  slice(chull(semi_500_l, MAT_l))
+
+plot_06_500_dat_hull <- plot_06_500_dat_hull %>%
+  dplyr::select(semi_500_l, MAT_l)
+
+plot_06_500_dat_hull_sf <- plot_06_500_dat_hull %>%
+  st_as_sf(coords = c("semi_500_l", "MAT_l")) %>%
   summarise() %>%
   st_cast("POLYGON") %>%
   st_convex_hull()
 
-plot_A02_250_dat_xy <-
-  with(climate_land_abund_A02_250,
+plot_06_500_dat_xy <-
+  with(climate_land_abund_06_500,
        expand.grid(
-         semi_250_l = seq(min(semi_250_l),
-                        max(semi_250_l),
-                        len = 250),
-         max_temp_l = seq(min(max_temp_l),
-                        max(max_temp_l),
-                        len = 250)
-       ))
-
-plot_A02_250_dat_xy_sf = st_as_sf(plot_A02_250_dat_xy,
-                                 coords = c("semi_250_l", "max_temp_l"))
-plot_A02_crop <-
-  st_intersection(plot_A02_250_dat_xy_sf, plot_A02_250_dat_hull_sf) %>%
-  st_coordinates() %>%
-  as.data.frame() %>%
-  rename(semi_250_l = X, max_temp_l = Y)
-
-plot_A02_crop <- plot_A02_crop %>%
-  mutate(
-    semi_250 = (exp(semi_250_l) - 1),
-    max_temp = (exp(max_temp_l) - 1)
-  ) %>%
-  poly_add_columns(semi_250, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>%
-  mutate(
-    semi_1_l = log(semi_1 + 1),
-    semi_2_l = log(semi_2 + 1),
-    max_temp_1_l = log(max_temp_1 + 1),
-    max_temp_2_l = log(max_temp_2 + 1)
-  )
-
-mod <- lmer(
-  ts_A02_l ~
-    semi_2_l * max_temp_1_l +
-    semi_1_l + max_temp_2_l +
-    (1 | StudyID_yr) +
-    (1 | StudyID_yr:Sampling_method),
-    # (1 | StudyID_yr:Sampling_method:Block),
-  data = climate_land_abund_A02_250,
-  na.action = "na.fail"
-)
-
-plot_A02_crop$ts_A02_l <-
-  c(predict(mod, newdata = plot_A02_crop, se = FALSE, re.form = NA))
-
-heatmap_A02_a <- ggplot() +
-  geom_raster(data = plot_A02_crop,
-              aes(x = semi_250_l,
-                  y = max_temp_l,
-                  fill = ts_A02_l)) +
-  geom_contour(
-    data = plot_A02_crop,
-    aes(x = semi_250_l,
-        y = max_temp_l,
-        z = ts_A02_l),
-    color = 'white',
-    alpha = 0.5
-  ) +
-  scale_fill_viridis_c(
-    option = "plasma",
-    alpha = 1) +
-  scale_y_continuous(
-    breaks = c(
-      log(289.15 + 1), 
-      log(293.15 + 1), 
-      log(297.15 + 1), 
-      log(301.15 + 1)),
-    labels = c(16, 20, 24, 28)) +
-  scale_x_continuous(
-    breaks = c(
-      log(0 + 1), 
-      log(2 + 1), 
-      log(10 + 1), 
-      log(30 + 1),
-      log(80 + 1)),
-    labels = c(0, 2, 10, 30, 80)) +
-  theme_classic() +
-  theme(
-    aspect.ratio = 1,
-    plot.title = element_text(size = 8),
-    axis.text = element_text(size = 7),
-    axis.title = element_text(size = 8),
-    legend.text = element_text(size = 7),
-    legend.position = "right",
-    legend.title = element_blank(),
-    legend.key.width = unit(0.25, "cm"),
-    legend.key.height = unit(0.25, "cm"),
-    legend.box.spacing = unit(0.25, "pt"),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")
-  ) +
-  labs(
-    fill = "Abundance",
-       x = "SNH (%) in 0.25 km",
-       y = "maxT (°C)")
-heatmap_A02_a
-```
-
-### heatmap_A02_b
-
-```{r fig.height=2.5, fig.width=4}
-climate_land_abund_A02_250 <- climate_land_abund_A02_250 %>%
-  mutate(
-    semi_250_l = log(semi_250 + 1),
-    MAT_l = log(MAT + 1)
-  )
-
-plot_A02_250_dat_hull <- climate_land_abund_A02_250 %>%
-  slice(chull(semi_250_l, MAT_l))
-plot_A02_250_dat_hull <- plot_A02_250_dat_hull %>%
-  dplyr::select(semi_250_l, MAT_l)
-plot_A02_250_dat_hull_sf <-
-  plot_A02_250_dat_hull %>% st_as_sf(coords = c("semi_250_l", "MAT_l")) %>%
-  summarise() %>%
-  st_cast("POLYGON") %>%
-  st_convex_hull()
-
-plot_A02_250_dat_xy <-
-  with(climate_land_abund_A02_250,
-       expand.grid(
-         semi_250_l = seq(min(semi_250_l),
-                        max(semi_250_l),
-                        len = 250),
+         semi_500_l = seq(min(semi_500_l),
+                        max(semi_500_l),
+                        len = 400),
          MAT_l = seq(min(MAT_l),
                         max(MAT_l),
-                        len = 250)
+                        len = 400)
        ))
 
-plot_A02_250_dat_xy_sf = st_as_sf(plot_A02_250_dat_xy,
-                                 coords = c("semi_250_l", "MAT_l"))
-plot_A02_crop <-
-  st_intersection(plot_A02_250_dat_xy_sf, plot_A02_250_dat_hull_sf) %>%
+plot_06_500_dat_xy_sf = st_as_sf(
+  plot_06_500_dat_xy,
+  coords = c("semi_500_l", "MAT_l"))
+
+plot_06_crop <-
+  st_intersection(
+    plot_06_500_dat_xy_sf,
+    plot_06_500_dat_hull_sf) %>%
   st_coordinates() %>%
   as.data.frame() %>%
-  rename(semi_250_l = X, MAT_l = Y)
+  rename(semi_500_l = X, MAT_l = Y)
 
-plot_A02_crop <- plot_A02_crop %>%
+plot_06_crop <- plot_06_crop %>%
   mutate(
-    semi_250 = (exp(semi_250_l) - 1),
-    MAT = (exp(MAT_l) - 1)
+    semi_500 = (expm1(semi_500_l)),
+    MAT = (expm1(MAT_l))
   ) %>%
-  poly_add_columns(semi_250, degree = 2, prefix = "semi_") %>%
+  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
   poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
   mutate(
-    semi_1_l = log(semi_1 + 1),
-    semi_2_l = log(semi_2 + 1),
-    MAT_1_l = log(MAT_1 + 1),
-    MAT_2_l = log(MAT_2 + 1)
+    semi_1_l = log1p(semi_1),
+    semi_2_l = log1p(semi_2),
+    MAT_1_l = log1p(MAT_1),
+    MAT_2_l = log1p(MAT_2)
   )
 
-mod <- lmer(
-  ts_A02_l ~
+mod_06 <- lmer(
+  ts_06_l ~
     semi_1_l * MAT_1_l +
+    semi_1_l + MAT_1_l +
     semi_2_l + MAT_2_l +
     (1 | StudyID_yr) +
-    (1 | StudyID_yr:Sampling_method),
-    # (1 | StudyID_yr:Sampling_method:Block),
-  data = climate_land_abund_A02_250
+    (1 | StudyID_yr:Sampling_method:Block),
+  data = climate_land_abund_06_500
 )
 
-plot_A02_crop$ts_A02_l <-
-  c(predict(mod, newdata = plot_A02_crop, se = FALSE, re.form = NA))
+plot_06_crop$ts_06_l <-
+  c(predict(mod_06, newdata = plot_06_crop, se = F, re.form = NA))
 
-heatmap_A02_b <- ggplot() +
-  geom_raster(data = plot_A02_crop,
-              aes(x = semi_250_l,
+heatmap_06_a <- ggplot() +
+  geom_raster(data = plot_06_crop,
+              aes(x = semi_500_l,
                   y = MAT_l,
-                  fill = ts_A02_l)) +
+                  fill = ts_06_l)) +
   geom_contour(
-    data = plot_A02_crop,
-    aes(x = semi_250_l,
+    data = plot_06_crop,
+    aes(x = semi_500_l,
         y = MAT_l,
-        z = ts_A02_l),
+        z = ts_06_l),
     color = 'white',
     alpha = 0.5
   ) +
   scale_fill_viridis_c(
     option = "plasma",
-    alpha = 1) +
+    alpha = 1,
+    breaks = c(0.6, 0.8, 1.0, 1.2)
+    ) +
   scale_y_continuous(
     breaks = c(
-      log(280.15 + 1), 
-      log(283.15 + 1), 
-      log(286.15 + 1), 
-      log(289.15 + 1)),
-    labels = c(7, 10, 13, 16)) +
+      log1p(7 + 273.15), 
+      log1p(10 + 273.15), 
+      log1p(13 + 273.15), 
+      log1p(16 + 273.15)),
+    labels = c(7, 10, 13, 16)
+    ) +
   scale_x_continuous(
-    breaks = c(
-      log(0 + 1), 
-      log(2 + 1), 
-      log(10 + 1), 
-      log(30 + 1),
-      log(80 + 1)),
-    labels = c(0, 2, 10, 30, 80)) +
+    breaks = c(log1p(0), log1p(2), log1p(10), log1p(30), log1p(80)),
+    labels = c(0, 2, 10, 30, 80)
+    ) +
   theme_classic() +
   theme(
     aspect.ratio = 1,
-    plot.title = element_text(size = 8),
+    # plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
     axis.title = element_text(size = 8),
     legend.text = element_text(size = 7),
@@ -2026,159 +1612,290 @@ heatmap_A02_b <- ggplot() +
   ) +
   labs(
     fill = "Abundance",
-       x = "SNH (%) in 0.25 km",
+       x = "SNH (%) in 0.5 km",
        y = "MAT (°C)")
-heatmap_A02_b
+heatmap_06_a
 ```
 
-## C02. Pest ts
+### heatmap_06_b
+
+```{r}
+climate_land_abund_06_500 <- climate_land_abund_06_500 %>%
+  mutate(
+    semi_500_l = log1p(semi_500),
+    max_temp_l = log1p(max_temp)
+  )
+
+plot_06_500_dat_hull <- climate_land_abund_06_500 %>%
+  slice(chull(semi_500_l, max_temp_l))
+
+plot_06_500_dat_hull <- plot_06_500_dat_hull %>%
+  dplyr::select(semi_500_l, max_temp_l)
+
+plot_06_500_dat_hull_sf <- plot_06_500_dat_hull %>%
+  st_as_sf(coords = c("semi_500_l", "max_temp_l")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_06_500_dat_xy <-
+  with(climate_land_abund_06_500,
+       expand.grid(
+         semi_500_l = seq(min(semi_500_l),
+                        max(semi_500_l),
+                        len = 400),
+         max_temp_l = seq(min(max_temp_l),
+                        max(max_temp_l),
+                        len = 400)
+       ))
+
+plot_06_500_dat_xy_sf = st_as_sf(
+  plot_06_500_dat_xy,
+  coords = c("semi_500_l", "max_temp_l"))
+
+plot_06_crop <-
+  st_intersection(
+    plot_06_500_dat_xy_sf,
+    plot_06_500_dat_hull_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semi_500_l = X, max_temp_l = Y)
+
+plot_06_crop <- plot_06_crop %>%
+  mutate(
+    semi_500 = (expm1(semi_500_l)),
+    max_temp = (expm1(max_temp_l))
+  ) %>%
+  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
+  poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>%
+  mutate(
+    semi_1_l = log1p(semi_1),
+    semi_2_l = log1p(semi_2),
+    max_temp_1_l = log1p(max_temp_1),
+    max_temp_2_l = log1p(max_temp_2)
+  )
+
+mod_06 <- lmer(
+  ts_06_l ~
+    semi_1_l * max_temp_1_l +
+    semi_1_l + max_temp_1_l +
+    semi_2_l + max_temp_2_l +
+    (1 | StudyID_yr) +
+    (1 | StudyID_yr:Sampling_method:Block),
+  data = climate_land_abund_06_500
+)
+
+plot_06_crop$ts_06_l <-
+  c(predict(mod_06, newdata = plot_06_crop, se = F, re.form = NA))
+
+heatmap_06_b <- ggplot() +
+  geom_raster(data = plot_06_crop,
+              aes(x = semi_500_l,
+                  y = max_temp_l,
+                  fill = ts_06_l)) +
+  geom_contour(
+    data = plot_06_crop,
+    aes(x = semi_500_l,
+        y = max_temp_l,
+        z = ts_06_l),
+    color = 'white',
+    alpha = 0.5
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 1,
+    breaks = c(0.6, 0.8, 1.0, 1.2)
+    ) +
+  scale_y_continuous(
+    breaks = c(
+      log1p(16 + 273.15),
+      log1p(20 + 273.15),
+      log1p(24 + 273.15),
+      log1p(28 + 273.15)),
+    labels = c(16, 20, 24, 28)
+    ) +
+  scale_x_continuous(
+    breaks = c(log1p(0), log1p(2), log1p(10), log1p(30), log1p(80)),
+    labels = c(0, 2, 10, 30, 80)
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "SNH (%) in 0.5 km",
+       y = "maxT (°C)")
+heatmap_06_b
+```
+
+## Habitat specialist pests
 
 Data frame:
 ```{r}
-climate_land_abund_C02_250 <-
+climate_land_abund_08_500 <-
   climate_land_abund %>%
   filter(Pest_study == 1) %>%
   dplyr::select(
     ts_pest_spec_flightwind_noncrop_abund_scaled,
-    semi_250,
-    edge_250,
-    arable_250,
-    min_precip,
-    max_precip,
+    semi_500,
+    edge_500,
+    arable_500,
     TAP,
+    MAT,
     min_temp,
     max_temp,
-    MAT,
     StudyID_yr,
     Sampling_method,
-    Block
+    Block,
+    Latitude,
+    Longitude
   ) %>%
   ungroup() %>%
   na.omit() %>%
-  poly_add_columns(semi_250, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(edge_250, degree = 2, prefix = "edge_") %>%
-  poly_add_columns(arable_250, degree = 2, prefix = "arable_") %>%
-  poly_add_columns(min_precip, degree = 2, prefix = "min_precip_") %>%
-  poly_add_columns(max_precip, degree = 2, prefix = "max_precip_") %>%
+  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
+  poly_add_columns(edge_500, degree = 2, prefix = "edge_") %>%
+  poly_add_columns(arable_500, degree = 2, prefix = "arable_") %>%
   poly_add_columns(TAP, degree = 2, prefix = "TAP_") %>%
   poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
   poly_add_columns(min_temp, degree = 2, prefix = "min_temp_") %>%
   poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>%
   mutate(
-    ts_C02_l = log(ts_pest_spec_flightwind_noncrop_abund_scaled + 1),
-    semi_1_l = log(semi_1 + 1),
-    semi_2_l = log(semi_2 + 1),
-    edge_1_l = log(edge_1 + 1),
-    edge_2_l = log(edge_2 + 1),
-    arable_1_l = log(arable_1 + 1),
-    arable_2_l = log(arable_2 + 1),
-    TAP_1_l = log(TAP_1 + 1),
-    TAP_2_l = log(TAP_2 + 1),
-    min_precip_1_l = log(min_precip_1 + 1),
-    min_precip_2_l = log(min_precip_2 + 1),
-    max_precip_1_l = log(max_precip_1 + 1),
-    max_precip_2_l = log(max_precip_2 + 1),
-    MAT_1_l = log(MAT_1 + 1),
-    MAT_2_l = log(MAT_2 + 1),
-    min_temp_1_l = log(min_temp_1 + 1),
-    min_temp_2_l = log(min_temp_2 + 1),
-    max_temp_1_l = log(max_temp_1 + 1),
-    max_temp_2_l = log(max_temp_2 + 1)
+    ts_08_l = log1p(ts_pest_spec_flightwind_noncrop_abund_scaled),
+    semi_1_l = log1p(semi_1),
+    semi_2_l = log1p(semi_2),
+    edge_1_l = log1p(edge_1),
+    edge_2_l = log1p(edge_2),
+    arable_1_l = log1p(arable_1),
+    arable_2_l = log1p(arable_2),
+    TAP_1_l = log1p(TAP_1),
+    TAP_2_l = log1p(TAP_2),
+    MAT_1_l = log1p(MAT_1),
+    MAT_2_l = log1p(MAT_2),
+    min_temp_1_l = log1p(min_temp_1),
+    min_temp_2_l = log1p(min_temp_2),
+    max_temp_1_l = log1p(max_temp_1),
+    max_temp_2_l = log1p(max_temp_2)
   )
 ```
 
-### heatmap_C02
+### heatmap_08
 
-```{r fig.height=2.5, fig.width=4}
-climate_land_abund_C02_250 <- climate_land_abund_C02_250 %>%
+```{r}
+climate_land_abund_08_500 <- climate_land_abund_08_500 %>%
   mutate(
-    semi_250_l = log(1 + semi_250),
-    min_temp_l = log(1 + min_temp)
+    semi_500_l = log1p(semi_500),
+    min_temp_l = log1p(min_temp)
   )
 
-plot_C02_250_dat_hull <- climate_land_abund_C02_250 %>%
-  slice(chull(semi_250_l, min_temp_l))
-plot_C02_250_dat_hull <- plot_C02_250_dat_hull %>%
-  dplyr::select(semi_250_l, min_temp_l)
-plot_C02_250_dat_hull_sf <-
-  plot_C02_250_dat_hull %>% st_as_sf(coords = c("semi_250_l", "min_temp_l")) %>%
+plot_08_500_dat_hull <- climate_land_abund_08_500 %>%
+  slice(chull(semi_500_l, min_temp_l))
+
+plot_08_500_dat_hull <- plot_08_500_dat_hull %>%
+  dplyr::select(semi_500_l, min_temp_l)
+
+plot_08_500_dat_hull_sf <- plot_08_500_dat_hull %>%
+  st_as_sf(coords = c("semi_500_l", "min_temp_l")) %>%
   summarise() %>%
   st_cast("POLYGON") %>%
   st_convex_hull()
 
-plot_C02_250_dat_xy <-
-  with(climate_land_abund_C02_250,
+plot_08_500_dat_xy <-
+  with(climate_land_abund_08_500,
        expand.grid(
-         semi_250_l = seq(min(semi_250_l),
-                        max(semi_250_l),
-                        len = 600),
+         semi_500_l = seq(min(semi_500_l),
+                        max(semi_500_l),
+                        len = 400),
          min_temp_l = seq(min(min_temp_l),
                         max(min_temp_l),
-                        len = 600)
+                        len = 400)
        ))
 
-plot_C02_250_dat_xy_sf = st_as_sf(plot_C02_250_dat_xy,
-                                 coords = c("semi_250_l", "min_temp_l"))
-plot_C02_crop <-
-  st_intersection(plot_C02_250_dat_xy_sf, plot_C02_250_dat_hull_sf) %>%
+plot_08_500_dat_xy_sf = st_as_sf(
+  plot_08_500_dat_xy,
+  coords = c("semi_500_l", "min_temp_l"))
+
+plot_08_crop <-
+  st_intersection(
+    plot_08_500_dat_xy_sf,
+    plot_08_500_dat_hull_sf) %>%
   st_coordinates() %>%
   as.data.frame() %>%
-  rename(semi_250_l = X, min_temp_l = Y)
+  rename(semi_500_l = X, min_temp_l = Y)
 
-plot_C02_crop <- plot_C02_crop %>%
+plot_08_crop <- plot_08_crop %>%
   mutate(
-    semi_250 = (exp(semi_250_l) - 1),
-    min_temp = (exp(min_temp_l) - 1)
+    semi_500 = (expm1(semi_500_l)),
+    min_temp = (expm1(min_temp_l))
   ) %>%
-  poly_add_columns(semi_250, degree = 2, prefix = "semi_") %>%
+  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
   poly_add_columns(min_temp, degree = 2, prefix = "min_temp_") %>%
   mutate(
-    semi_1_l = log(semi_1 + 1),
-    semi_2_l = log(semi_2 + 1),
-    min_temp_1_l = log(min_temp_1 + 1),
-    min_temp_2_l = log(min_temp_2 + 1)
+    semi_1_l = log1p(semi_1),
+    semi_2_l = log1p(semi_2),
+    min_temp_1_l = log1p(min_temp_1),
+    min_temp_2_l = log1p(min_temp_2)
   )
 
-mod <- lmer(
-  ts_C02_l ~
+mod_08 <- lmer(
+  ts_08_l ~
     semi_1_l * min_temp_2_l +
-    semi_2_l + min_temp_1_l +
+    semi_1_l + min_temp_1_l +
+    semi_2_l + min_temp_2_l +
     (1 | StudyID_yr) +
-    # (1 | StudyID_yr:Sampling_method),
     (1 | StudyID_yr:Sampling_method:Block),
-  data = climate_land_abund_C02_250
+  data = climate_land_abund_08_500
 )
 
-plot_C02_crop$ts_C02_l <-
-  c(predict(mod, newdata = plot_C02_crop, se = FALSE, re.form = NA))
+plot_08_crop$ts_08_l <-
+  c(predict(mod_08, newdata = plot_08_crop, se = F, re.form = NA))
 
-heatmap_C02 <- ggplot() +
-  geom_raster(data = plot_C02_crop,
-              aes(x = semi_250_l,
+heatmap_08 <- ggplot() +
+  geom_raster(data = plot_08_crop,
+              aes(x = semi_500_l,
                   y = min_temp_l,
-                  fill = ts_C02_l)) +
+                  fill = ts_08_l)) +
   geom_contour(
-    data = plot_C02_crop,
-    aes(x = semi_250_l,
+    data = plot_08_crop,
+    aes(x = semi_500_l,
         y = min_temp_l,
-        z = ts_C02_l),
+        z = ts_08_l),
     color = 'white',
     alpha = 0.5
   ) +
   scale_fill_viridis_c(
     option = "plasma",
-    alpha = 1
+    alpha = 1,
+    breaks = c(1.0, 1.5, 2.0)
     ) +
-  scale_x_continuous(
-    breaks = c(log(1 + 0), log(1 + 2), log(1 + 10), log(1 + 25), log(1 + 60)),
-    labels = c(0, 2, 10, 25, 60)) +
   scale_y_continuous(
-    breaks = c(log(1 + 268.15), log(1 + 271.15), log(1 + 274.15), log(1 + 277.15), log(1 + 280.15)),
-    labels = c(-5, -2, 1, 4, 7)) +
+    breaks = c(
+      log1p(-3 + 273.15),
+      log1p(0 + 273.15),
+      log1p(3 + 273.15),
+      log1p(6 + 273.15)),
+    labels = c(-3, 0, 3, 6)
+  ) +
+  scale_x_continuous(
+    breaks = c(log1p(0), log1p(2), log1p(10), log1p(30), log1p(80)),
+    labels = c(0, 2, 10, 30, 80)
+    ) +
   theme_classic() +
   theme(
     aspect.ratio = 1,
-    plot.title = element_text(size = 8),
+    # plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
     axis.title = element_text(size = 8),
     legend.text = element_text(size = 7),
@@ -2193,7 +1910,65 @@ heatmap_C02 <- ggplot() +
   ) +
   labs(
     fill = "Abundance",
-       x = "SNH (%) in 0.25 km",
+       x = "SNH (%) in 0.5 km",
        y = "minT (°C)")
-heatmap_C02
+heatmap_08
 ```
+
+
+# Figure S1
+
+```{r}
+climate_land_abund_cor1_dat <- climate_land_abund %>%
+  select(
+    semi_100,
+    semi_250,
+    semi_500,
+    semi_1000,
+    semi_2000,
+    semi_3000,
+    edge_100,
+    edge_250,
+    edge_500,
+    edge_1000,
+    edge_2000,
+    edge_3000,
+    arable_100,
+    arable_250,
+    arable_500,
+    arable_1000,
+    arable_2000,
+    arable_3000
+  ) %>%
+  na.omit()
+```
+
+```{r}
+cor_1 <- cor(climate_land_abund_cor1_dat)
+cor_1
+library(corrplot)
+corrplot(cor_1)
+```
+
+
+# Figure S2
+
+```{r}
+climate_land_abund_cor2_dat <- climate_land_abund %>%
+  select(
+    min_precip,
+    max_precip,
+    TAP,
+    min_temp,
+    max_temp,
+    MAT
+  )
+
+cor_2 <- cor(climate_land_abund_cor2_dat)
+cor_2
+library(corrplot)
+corrplot(cor_2)
+```
+
+
+
