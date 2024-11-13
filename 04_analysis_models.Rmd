@@ -1,9 +1,7 @@
 ---
-title: "Chapter 1 Analysis - Models"
-output:
-  html_document:
-    df_print: paged
-date: "2023-09-12"
+title: "04. Analysis - Models"
+author: Jessica Guezen
+output: pdf_document
 ---
 
 # Set up
