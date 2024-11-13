@@ -11,7 +11,7 @@ date: "2023-09-12"
 Open csv:
 ```{r}
 climate_land_abund = read.csv(
-  "~/Desktop/PhD/Chapter 1/Data/Working/R/final_dat.csv")
+  "~/Desktop/clim_land_arthropods/final_dat.csv")
 ```
 
 Load packages:
@@ -29254,3 +29254,322 @@ r.squaredGLMM(mod_null_11_100)
 r.squaredGLMM(mod_null_11_250)
 r.squaredGLMM(mod_null_11_500)
 ```
+
+# Correlograms
+
+```{r}
+library(ncf)
+```
+
+## Pollinators
+
+### modint_9.1
+
+100m:
+```{r}
+correlog_modint_9.1_02_100 <-
+  spline.correlog(
+    x = climate_land_abund_02_100$Longitude,
+    y = climate_land_abund_02_100$Latitude,
+    z = residuals(modint_9.1_02_100, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_9.1_02_100)
+```
+
+250m:
+```{r}
+correlog_modint_9.1_02_250 <-
+  spline.correlog(
+    x = climate_land_abund_02_250$Longitude,
+    y = climate_land_abund_02_250$Latitude,
+    z = residuals(modint_9.1_02_250, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_9.1_02_250)
+```
+
+500m:
+```{r}
+correlog_modint_9.1_02_500 <-
+  spline.correlog(
+    x = climate_land_abund_02_500$Longitude,
+    y = climate_land_abund_02_500$Latitude,
+    z = residuals(modint_9.1_02_500, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_9.1_02_500)
+```
+
+### modint_9.2
+
+100m:
+```{r}
+correlog_modint_9.2_02_100 <-
+  spline.correlog(
+    x = climate_land_abund_02_100$Longitude,
+    y = climate_land_abund_02_100$Latitude,
+    z = residuals(modint_9.2_02_100, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_9.2_02_100)
+```
+
+250m:
+```{r}
+correlog_modint_9.2_02_250 <-
+  spline.correlog(
+    x = climate_land_abund_02_250$Longitude,
+    y = climate_land_abund_02_250$Latitude,
+    z = residuals(modint_9.2_02_250, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_9.2_02_250)
+```
+
+500m:
+```{r}
+correlog_modint_9.2_02_500 <-
+  spline.correlog(
+    x = climate_land_abund_02_500$Longitude,
+    y = climate_land_abund_02_500$Latitude,
+    z = residuals(modint_9.2_02_500, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_9.2_02_500)
+```
+
+
+## Pests
+
+### modadd_4
+
+100m:
+```{r}
+correlog_modadd_4_03_100 <-
+  spline.correlog(
+    x = climate_land_abund_03_100$Longitude,
+    y = climate_land_abund_03_100$Latitude,
+    z = residuals(modadd_4_03_100, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modadd_4_03_100)
+```
+
+250m:
+```{r}
+correlog_modadd_4_03_250 <-
+  spline.correlog(
+    x = climate_land_abund_03_250$Longitude,
+    y = climate_land_abund_03_250$Latitude,
+    z = residuals(modadd_4_03_250, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modadd_4_03_250)
+```
+
+500m:
+```{r}
+correlog_modadd_4_03_500 <-
+  spline.correlog(
+    x = climate_land_abund_03_500$Longitude,
+    y = climate_land_abund_03_500$Latitude,
+    z = residuals(modadd_4_03_500, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modadd_4_03_500)
+```
+
+
+## Diet specialist pollinators
+
+### modint_3.1
+
+100m:
+```{r}
+correlog_modint_3.1_06_100 <-
+  spline.correlog(
+    x = climate_land_abund_06_100$Longitude,
+    y = climate_land_abund_06_100$Latitude,
+    z = residuals(modint_3.1_06_100, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_3.1_06_100)
+```
+
+250m:
+```{r}
+correlog_modint_3.1_06_250 <-
+  spline.correlog(
+    x = climate_land_abund_06_250$Longitude,
+    y = climate_land_abund_06_250$Latitude,
+    z = residuals(modint_3.1_06_250, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_3.1_06_250)
+```
+
+500m:
+```{r}
+correlog_modint_3.1_06_500 <-
+  spline.correlog(
+    x = climate_land_abund_06_500$Longitude,
+    y = climate_land_abund_06_500$Latitude,
+    z = residuals(modint_3.1_06_500, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_3.1_06_500)
+```
+
+### modint_7.1
+
+100m:
+```{r}
+correlog_modint_7.1_06_100 <-
+  spline.correlog(
+    x = climate_land_abund_06_100$Longitude,
+    y = climate_land_abund_06_100$Latitude,
+    z = residuals(modint_7.1_06_100, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_7.1_06_100)
+```
+
+250m:
+```{r}
+correlog_modint_7.1_06_250 <-
+  spline.correlog(
+    x = climate_land_abund_06_250$Longitude,
+    y = climate_land_abund_06_250$Latitude,
+    z = residuals(modint_7.1_06_250, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_7.1_06_250)
+```
+
+500m:
+```{r}
+correlog_modint_7.1_06_500 <-
+  spline.correlog(
+    x = climate_land_abund_06_500$Longitude,
+    y = climate_land_abund_06_500$Latitude,
+    z = residuals(modint_7.1_06_500, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_7.1_06_500)
+```
+### modint_7.2
+
+100m:
+```{r}
+correlog_modint_7.2_06_100 <-
+  spline.correlog(
+    x = climate_land_abund_06_100$Longitude,
+    y = climate_land_abund_06_100$Latitude,
+    z = residuals(modint_7.2_06_100, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_7.2_06_100)
+```
+
+250m:
+```{r}
+correlog_modint_7.2_06_250 <-
+  spline.correlog(
+    x = climate_land_abund_06_250$Longitude,
+    y = climate_land_abund_06_250$Latitude,
+    z = residuals(modint_7.2_06_250, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_7.2_06_250)
+```
+
+500m:
+```{r}
+correlog_modint_7.2_06_500 <-
+  spline.correlog(
+    x = climate_land_abund_06_500$Longitude,
+    y = climate_land_abund_06_500$Latitude,
+    z = residuals(modint_7.2_06_500, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_7.2_06_500)
+```
+### modint_7.3
+
+100m:
+```{r}
+correlog_modint_7.3_06_100 <-
+  spline.correlog(
+    x = climate_land_abund_06_100$Longitude,
+    y = climate_land_abund_06_100$Latitude,
+    z = residuals(modint_7.3_06_100, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_7.3_06_100)
+```
+
+250m:
+```{r}
+correlog_modint_7.3_06_250 <-
+  spline.correlog(
+    x = climate_land_abund_06_250$Longitude,
+    y = climate_land_abund_06_250$Latitude,
+    z = residuals(modint_7.3_06_250, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_7.3_06_250)
+```
+
+500m:
+```{r}
+correlog_modint_7.3_06_500 <-
+  spline.correlog(
+    x = climate_land_abund_06_500$Longitude,
+    y = climate_land_abund_06_500$Latitude,
+    z = residuals(modint_7.3_06_500, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_7.3_06_500)
+```
+
+## Habitat specialist pests
+
+### modint_5.3
+
+100m:
+```{r}
+correlog_modint_5.3_08_100 <-
+  spline.correlog(
+    x = climate_land_abund_08_100$Longitude,
+    y = climate_land_abund_08_100$Latitude,
+    z = residuals(modint_5.3_08_100, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_5.3_08_100)
+```
+
+250m:
+```{r}
+correlog_modint_5.3_08_250 <-
+  spline.correlog(
+    x = climate_land_abund_08_250$Longitude,
+    y = climate_land_abund_08_250$Latitude,
+    z = residuals(modint_5.3_08_250, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_5.3_08_250)
+```
+
+500m:
+```{r}
+correlog_modint_5.3_08_500 <-
+  spline.correlog(
+    x = climate_land_abund_08_500$Longitude,
+    y = climate_land_abund_08_500$Latitude,
+    z = residuals(modint_5.3_08_500, type = "pearson"),
+    latlon = TRUE
+  )
+plot(correlog_modint_5.3_08_500)
+```
+
