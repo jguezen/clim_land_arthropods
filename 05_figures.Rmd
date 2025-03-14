@@ -30,6 +30,8 @@ library(ggeffects)
 library(ggrepel)
 library(ggmosaic)
 library(ggimage)
+library(marginaleffects)
+library(glmmTMB)
 ```
 
 ```{r}
@@ -42,25 +44,23 @@ climate_land_abund <-
 
 ```{r}
 tf1a_dat <- data.frame(
-  MAT = 2:5,
-  SNH = c(25, 25, 25, 25, 50, 50, 50, 50, 75, 75, 75, 75, 100, 100, 100, 100))
+  change_MAT = c(-1, 0, 1, -1, 0, 1, -1, 0, 1),
+  nat_hab = c(-1, -1, -1, 0, 0, 0, 1, 1, 1))
 tf1a_dat <- tf1a_dat %>%
-  poly_add_columns(SNH, degree = 2, prefix = "SNH_") %>%
   mutate(
-    abundance_1 = 3*SNH_1 + 12*SNH_2 + 9*MAT + 5,
-    abundance_2 = 3*SNH_1 + 12*SNH_2 + 9*MAT + 6*(SNH_2*MAT) + 11,
-    abundance_3 = 3*SNH_1 + 12*SNH_2 + 9*MAT - 6*(SNH_2*MAT) - 1,
-         )
+    abundance_1 = 5*nat_hab + 5*change_MAT + 15,
+    abundance_2 = 5*nat_hab + 5*change_MAT + 5*(nat_hab*change_MAT) + 15,
+    abundance_3 = 5*nat_hab + 5*change_MAT - 5*(nat_hab*change_MAT) + 15,
+    abundance_4 = 5*nat_hab - 5*change_MAT + 15,
+    abundance_5 = 5*nat_hab - 5*change_MAT + 5*(nat_hab*change_MAT) + 15,
+    abundance_6 = 5*nat_hab - 5*change_MAT - 5*(nat_hab*change_MAT) + 15)
 ```
 
 ```{r fig.height=2.5, fig.width=4}
-tf1a_dat_hull <- tf1a_dat %>%
-  slice(chull(SNH, MAT))
-
-tf1a_dat_hull <- tf1a_dat_hull %>%
-  dplyr::select(SNH, MAT)
+tf1a_dat_hull <- tf1a_dat %>% 
+  slice(chull(nat_hab, change_MAT))
 tf1a_dat_hull_sf <-
-  tf1a_dat_hull %>% st_as_sf(coords = c("SNH", "MAT")) %>%
+  tf1a_dat_hull %>% st_as_sf(coords = c("nat_hab", "change_MAT")) %>%
   summarise() %>%
   st_cast("POLYGON") %>%
   st_convex_hull()
@@ -68,31 +68,28 @@ tf1a_dat_hull_sf <-
 tf1a_dat_xy <-
   with(tf1a_dat,
        expand.grid(
-         SNH = seq(min(SNH),
-                   max(SNH),
+         nat_hab = seq(min(nat_hab),
+                   max(nat_hab),
                    len = 400),
-         MAT = seq(min(MAT),
-                        max(MAT),
+         change_MAT = seq(min(change_MAT),
+                        max(change_MAT),
                         len = 400)
        ))
 
 tf1a_dat_xy_sf = st_as_sf(tf1a_dat_xy,
-                         coords = c("SNH", "MAT"))
+                         coords = c("nat_hab", "change_MAT"))
 plot_tf1a_crop <-
   st_intersection(
     tf1a_dat_xy_sf,
     tf1a_dat_hull_sf) %>%
   st_coordinates() %>%
   as.data.frame() %>%
-  rename(SNH = X,
-         MAT = Y)
-
-plot_tf1a_crop <- plot_tf1a_crop %>%
-  poly_add_columns(SNH, degree = 2, prefix = "SNH_")
+  rename(nat_hab = X,
+         change_MAT = Y)
 
 mod1a <- lm(
   abundance_1 ~
-    SNH_1 + SNH_2 + MAT,
+    nat_hab + change_MAT,
   data = tf1a_dat
 )
 
@@ -101,507 +98,800 @@ plot_tf1a_crop$abundance_1 <-
 
 heatmap_tf1a <- ggplot() +
   geom_raster(data = plot_tf1a_crop,
-              aes(x = SNH,
-                  y = MAT,
+              aes(x = nat_hab,
+                  y = change_MAT,
                   fill = abundance_1)) +
   geom_contour(
     data = plot_tf1a_crop,
-    aes(x = SNH,
-        y = MAT,
+    aes(x = nat_hab,
+        y = change_MAT,
         z = abundance_1),
-    breaks = c(16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80),
+    bins = 10,
     color = 'white',
     alpha = 0.5
   ) +
   scale_fill_viridis_c(
     option = "plasma",
-    begin = 0,
-    end = (58.01246-16.32918)/(79.01246-16.32918),
-    alpha = 1
+    begin = 5/30,
+    end = 25/30,
+    alpha = 1,
+    breaks = c(5, 15, 25),
+    labels = c("low", "med", "high")
     ) +
   scale_x_continuous(
-    breaks = c(26, 99),
+    breaks = c(-1, 1),
     labels = c("low", "high")) +
   scale_y_continuous(
-    breaks = c(2.1, 4.9),
+    breaks = c(-1, 1),
     labels = c("low", "high")) +
   theme_classic() +
   theme(
     aspect.ratio = 1,
     # axis.title.x = element_blank(),
-    legend.position = "none",
-    # legend.title = element_blank(),
-    legend.key.width = unit(0.25, "cm"),
-    legend.key.height = unit(0.5, "cm"),
-    legend.box.spacing = unit(0.25, "pt"),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")) +
-  labs(
-    title = "Additive",
-    fill = "Abundance",
-       x = "",
-       y = "MAT (°C)")
-heatmap_tf1a
-```
-
-```{r fig.height=2.5, fig.width=4}
-tf1a_dat_hull <- tf1a_dat %>%
-  slice(chull(SNH, MAT))
-
-tf1a_dat_hull <- tf1a_dat_hull %>%
-  dplyr::select(SNH, MAT)
-tf1a_dat_hull_sf <-
-  tf1a_dat_hull %>% st_as_sf(coords = c("SNH", "MAT")) %>%
-  summarise() %>%
-  st_cast("POLYGON") %>%
-  st_convex_hull()
-
-tf1a_dat_xy <-
-  with(tf1a_dat,
-       expand.grid(
-         SNH = seq(min(SNH),
-                   max(SNH),
-                   len = 400),
-         MAT = seq(min(MAT),
-                        max(MAT),
-                        len = 400)
-       ))
-
-tf1a_dat_xy_sf = st_as_sf(tf1a_dat_xy,
-                         coords = c("SNH", "MAT"))
-plot_tf1a_crop <-
-  st_intersection(
-    tf1a_dat_xy_sf,
-    tf1a_dat_hull_sf) %>%
-  st_coordinates() %>%
-  as.data.frame() %>%
-  rename(SNH = X,
-         MAT = Y)
-
-plot_tf1a_crop <- plot_tf1a_crop %>%
-  poly_add_columns(SNH, degree = 2, prefix = "SNH_")
-
-mod1a <- lm(
-  abundance_3 ~
-    SNH_1 + SNH_2*MAT,
-  data = tf1a_dat
-)
-
-plot_tf1a_crop$abundance_3 <-
-  c(predict(mod1a, newdata = plot_tf1a_crop, se = FALSE))
-
-heatmap_tf1b <- ggplot() +
-  geom_raster(data = plot_tf1a_crop,
-              aes(x = SNH,
-                  y = MAT,
-                  fill = abundance_3)) +
-  geom_contour(
-    data = plot_tf1a_crop,
-    aes(x = SNH,
-        y = MAT,
-        z = abundance_3),
-    breaks = c(16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80),
-    color = 'white',
-    alpha = 0.5
-  ) +
-  scale_fill_viridis_c(
-    option = "plasma",
-    begin = 0,
-    end = (37.01246-16.32918)/(79.01246-16.32918),
-    alpha = 1
-    ) +
-  scale_x_continuous(
-    breaks = c(26, 99),
-    labels = c("low", "high")) +
-  scale_y_continuous(
-    breaks = c(2.1, 4.9),
-    labels = c("low", "high")) +
-  theme_classic() +
-  theme(
-    aspect.ratio = 1,
-    axis.title.y = element_blank(),
-    legend.position = "none",
-    # legend.title = element_blank(),
-    legend.key.width = unit(0.25, "cm"),
-    legend.key.height = unit(0.5, "cm"),
-    legend.box.spacing = unit(0.25, "pt"),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")) +
-  labs(
-    title = "Antagonistic",
-    fill = "Abundance",
-       x = "SNH (%)",
-       y = "MAT (°C)")
-heatmap_tf1b
-```
-
-```{r fig.height=2.5, fig.width=4}
-tf1a_dat_hull <- tf1a_dat %>%
-  slice(chull(SNH, MAT))
-
-tf1a_dat_hull <- tf1a_dat_hull %>%
-  dplyr::select(SNH, MAT)
-tf1a_dat_hull_sf <-
-  tf1a_dat_hull %>% st_as_sf(coords = c("SNH", "MAT")) %>%
-  summarise() %>%
-  st_cast("POLYGON") %>%
-  st_convex_hull()
-
-tf1a_dat_xy <-
-  with(tf1a_dat,
-       expand.grid(
-         SNH = seq(min(SNH),
-                   max(SNH),
-                   len = 400),
-         MAT = seq(min(MAT),
-                        max(MAT),
-                        len = 400)
-       ))
-
-tf1a_dat_xy_sf = st_as_sf(tf1a_dat_xy,
-                         coords = c("SNH", "MAT"))
-plot_tf1a_crop <-
-  st_intersection(
-    tf1a_dat_xy_sf,
-    tf1a_dat_hull_sf) %>%
-  st_coordinates() %>%
-  as.data.frame() %>%
-  rename(SNH = X,
-         MAT = Y)
-
-plot_tf1a_crop <- plot_tf1a_crop %>%
-  poly_add_columns(SNH, degree = 2, prefix = "SNH_")
-
-mod1a <- lm(
-  abundance_2 ~
-    SNH_1 + SNH_2*MAT,
-  data = tf1a_dat
-)
-
-plot_tf1a_crop$abundance_2 <-
-  c(predict(mod1a, newdata = plot_tf1a_crop, se = FALSE))
-
-heatmap_tf1c <- ggplot() +
-  geom_raster(data = plot_tf1a_crop,
-              aes(x = SNH,
-                  y = MAT,
-                  fill = abundance_2)) +
-  geom_contour(
-    data = plot_tf1a_crop,
-    aes(x = SNH,
-        y = MAT,
-        z = abundance_2),
-    breaks = c(16, 20, 24, 28, 32, 36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80),
-    color = 'white',
-    alpha = 0.5
-  ) +
-  scale_fill_viridis_c(
-    option = "plasma",
-    begin = 0,
-    end = 1,
-    alpha = 1,
-    breaks = c(29, 60),
-    labels = c("low", "high")
-    ) +
-  scale_x_continuous(
-    breaks = c(26, 99),
-    labels = c("low", "high")) +
-  scale_y_continuous(
-    breaks = c(2.1, 4.9),
-    labels = c("low", "high")) +
-  theme_classic() +
-  theme(
-    aspect.ratio = 1,
-    axis.title.y = element_blank(),
+    axis.line = element_blank(),
     legend.position = "right",
+    # legend.title = element_blank(),
     legend.key.width = unit(0.25, "cm"),
     legend.key.height = unit(0.25, "cm"),
     legend.box.spacing = unit(0.25, "pt"),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")) +
+  labs(
+    title = "Additive",
+    fill = "Abundance",
+       x = "nat.hab (%)",
+       y = "change in MAT")
+heatmap_tf1a
+```
+
+```{r fig.height=2.5, fig.width=4}
+tf1a_dat_hull <- tf1a_dat %>% 
+  slice(chull(nat_hab, change_MAT))
+tf1a_dat_hull_sf <-
+  tf1a_dat_hull %>% st_as_sf(coords = c("nat_hab", "change_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+tf1a_dat_xy <-
+  with(tf1a_dat,
+       expand.grid(
+         nat_hab = seq(min(nat_hab),
+                   max(nat_hab),
+                   len = 400),
+         change_MAT = seq(min(change_MAT),
+                        max(change_MAT),
+                        len = 400)
+       ))
+
+tf1a_dat_xy_sf = st_as_sf(tf1a_dat_xy,
+                         coords = c("nat_hab", "change_MAT"))
+plot_tf1a_crop <-
+  st_intersection(
+    tf1a_dat_xy_sf,
+    tf1a_dat_hull_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(nat_hab = X,
+         change_MAT = Y)
+
+mod2a <- lm(
+  abundance_2 ~
+    nat_hab * change_MAT,
+  data = tf1a_dat
+)
+
+plot_tf1a_crop$abundance_2 <-
+  c(predict(mod2a, newdata = plot_tf1a_crop, se = FALSE))
+
+heatmap_tf1b <- ggplot() +
+  geom_raster(data = plot_tf1a_crop,
+              aes(x = nat_hab,
+                  y = change_MAT,
+                  fill = abundance_2)) +
+  geom_contour(
+    data = plot_tf1a_crop,
+    aes(x = nat_hab,
+        y = change_MAT,
+        z = abundance_2),
+    bins = 10,
+    color = 'white',
+    alpha = 0.5
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    begin = 10/30,
+    end = 30/30,
+    alpha = 1,
+    breaks = c(5, 15, 25),
+    labels = c("low", "med", "high")
+    ) +
+  scale_x_continuous(
+    breaks = c(-1, 1),
+    labels = c("low", "high")) +
+  scale_y_continuous(
+    breaks = c(-1, 1),
+    labels = c("low", "high")) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # axis.title.x = element_blank(),
+    axis.line = element_blank(),
+    legend.position = "right",
+    # legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
     plot.margin = unit(c(0,0,0,0), "cm")) +
   labs(
     title = "Synergistic",
     fill = "Abundance",
-       x = "",
-       y = "MAT (°C)")
+       x = "nat.hab (%)",
+       y = "change in MAT")
+heatmap_tf1b
+```
+
+```{r fig.height=2.5, fig.width=4}
+tf1a_dat_hull <- tf1a_dat %>% 
+  slice(chull(nat_hab, change_MAT))
+tf1a_dat_hull_sf <-
+  tf1a_dat_hull %>% st_as_sf(coords = c("nat_hab", "change_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+tf1a_dat_xy <-
+  with(tf1a_dat,
+       expand.grid(
+         nat_hab = seq(min(nat_hab),
+                   max(nat_hab),
+                   len = 400),
+         change_MAT = seq(min(change_MAT),
+                        max(change_MAT),
+                        len = 400)
+       ))
+
+tf1a_dat_xy_sf = st_as_sf(tf1a_dat_xy,
+                         coords = c("nat_hab", "change_MAT"))
+plot_tf1a_crop <-
+  st_intersection(
+    tf1a_dat_xy_sf,
+    tf1a_dat_hull_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(nat_hab = X,
+         change_MAT = Y)
+
+mod2a <- lm(
+  abundance_3 ~
+    nat_hab * change_MAT,
+  data = tf1a_dat
+)
+
+plot_tf1a_crop$abundance_3 <-
+  c(predict(mod2a, newdata = plot_tf1a_crop, se = FALSE))
+
+heatmap_tf1c <- ggplot() +
+  geom_raster(data = plot_tf1a_crop,
+              aes(x = nat_hab,
+                  y = change_MAT,
+                  fill = abundance_3)) +
+  geom_contour(
+    data = plot_tf1a_crop,
+    aes(x = nat_hab,
+        y = change_MAT,
+        z = abundance_3),
+    bins = 10,
+    color = 'white',
+    alpha = 0.5
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    begin = 0,
+    end = 20/30,
+    alpha = 1,
+    breaks = c(5, 15, 25),
+    labels = c("low", "med", "high")
+    ) +
+  scale_x_continuous(
+    breaks = c(-1, 1),
+    labels = c("low", "high")) +
+  scale_y_continuous(
+    breaks = c(-1, 1),
+    labels = c("low", "high")) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # axis.title.x = element_blank(),
+    axis.line = element_blank(),
+    legend.position = "right",
+    # legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")) +
+  labs(
+    title = "Antagonistic",
+    fill = "Abundance",
+       x = "nat.hab (%)",
+       y = "change in MAT")
 heatmap_tf1c
+```
+
+```{r fig.height=2.5, fig.width=4}
+tf1a_dat_hull <- tf1a_dat %>% 
+  slice(chull(nat_hab, change_MAT))
+tf1a_dat_hull_sf <-
+  tf1a_dat_hull %>% st_as_sf(coords = c("nat_hab", "change_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+tf1a_dat_xy <-
+  with(tf1a_dat,
+       expand.grid(
+         nat_hab = seq(min(nat_hab),
+                   max(nat_hab),
+                   len = 400),
+         change_MAT = seq(min(change_MAT),
+                        max(change_MAT),
+                        len = 400)
+       ))
+
+tf1a_dat_xy_sf = st_as_sf(tf1a_dat_xy,
+                         coords = c("nat_hab", "change_MAT"))
+plot_tf1a_crop <-
+  st_intersection(
+    tf1a_dat_xy_sf,
+    tf1a_dat_hull_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(nat_hab = X,
+         change_MAT = Y)
+
+mod2a <- lm(
+  abundance_4 ~
+    nat_hab + change_MAT,
+  data = tf1a_dat
+)
+
+plot_tf1a_crop$abundance_4 <-
+  c(predict(mod2a, newdata = plot_tf1a_crop, se = FALSE))
+
+heatmap_tf1d <- ggplot() +
+  geom_raster(data = plot_tf1a_crop,
+              aes(x = nat_hab,
+                  y = change_MAT,
+                  fill = abundance_4)) +
+  geom_contour(
+    data = plot_tf1a_crop,
+    aes(x = nat_hab,
+        y = change_MAT,
+        z = abundance_4),
+    bins = 10,
+    color = 'white',
+    alpha = 0.5
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    begin = 5/30,
+    end = 25/30,
+    alpha = 1,
+    breaks = c(5, 15, 25),
+    labels = c("low", "med", "high")
+    ) +
+  scale_x_continuous(
+    breaks = c(-1, 1),
+    labels = c("low", "high")) +
+  scale_y_continuous(
+    breaks = c(-1, 1),
+    labels = c("low", "high")) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    axis.line = element_blank(),
+    # axis.title.x = element_blank(),
+    legend.position = "right",
+    # legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")) +
+  labs(
+    title = "Additive",
+    fill = "Abundance",
+       x = "nat.hab (%)",
+       y = "change in MAT")
+heatmap_tf1d
+```
+
+```{r fig.height=2.5, fig.width=4}
+tf1a_dat_hull <- tf1a_dat %>% 
+  slice(chull(nat_hab, change_MAT))
+tf1a_dat_hull_sf <-
+  tf1a_dat_hull %>% st_as_sf(coords = c("nat_hab", "change_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+tf1a_dat_xy <-
+  with(tf1a_dat,
+       expand.grid(
+         nat_hab = seq(min(nat_hab),
+                   max(nat_hab),
+                   len = 400),
+         change_MAT = seq(min(change_MAT),
+                        max(change_MAT),
+                        len = 400)
+       ))
+
+tf1a_dat_xy_sf = st_as_sf(tf1a_dat_xy,
+                         coords = c("nat_hab", "change_MAT"))
+plot_tf1a_crop <-
+  st_intersection(
+    tf1a_dat_xy_sf,
+    tf1a_dat_hull_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(nat_hab = X,
+         change_MAT = Y)
+
+mod2a <- lm(
+  abundance_5 ~
+    nat_hab * change_MAT,
+  data = tf1a_dat
+)
+
+plot_tf1a_crop$abundance_5 <-
+  c(predict(mod2a, newdata = plot_tf1a_crop, se = FALSE))
+
+heatmap_tf1e <- ggplot() +
+  geom_raster(data = plot_tf1a_crop,
+              aes(x = nat_hab,
+                  y = change_MAT,
+                  fill = abundance_5)) +
+  geom_contour(
+    data = plot_tf1a_crop,
+    aes(x = nat_hab,
+        y = change_MAT,
+        z = abundance_5),
+    bins = 10,
+    color = 'white',
+    alpha = 0.5
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    begin = 0,
+    end = 20/30,
+    alpha = 1,
+    breaks = c(5, 15, 25),
+    labels = c("low", "med", "high")
+    ) +
+  scale_x_continuous(
+    breaks = c(-1, 1),
+    labels = c("low", "high")) +
+  scale_y_continuous(
+    breaks = c(-1, 1),
+    labels = c("low", "high")) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    axis.line = element_blank(),
+    # axis.title.x = element_blank(),
+    legend.position = "right",
+    # legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")) +
+  labs(
+    title = "Synergistic",
+    fill = "Abundance",
+       x = "nat.hab (%)",
+       y = "change in MAT")
+heatmap_tf1e
+```
+
+```{r fig.height=2.5, fig.width=4}
+tf1a_dat_hull <- tf1a_dat %>% 
+  slice(chull(nat_hab, change_MAT))
+tf1a_dat_hull_sf <-
+  tf1a_dat_hull %>% st_as_sf(coords = c("nat_hab", "change_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+tf1a_dat_xy <-
+  with(tf1a_dat,
+       expand.grid(
+         nat_hab = seq(min(nat_hab),
+                   max(nat_hab),
+                   len = 400),
+         change_MAT = seq(min(change_MAT),
+                        max(change_MAT),
+                        len = 400)
+       ))
+
+tf1a_dat_xy_sf = st_as_sf(tf1a_dat_xy,
+                         coords = c("nat_hab", "change_MAT"))
+plot_tf1a_crop <-
+  st_intersection(
+    tf1a_dat_xy_sf,
+    tf1a_dat_hull_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(nat_hab = X,
+         change_MAT = Y)
+
+mod2a <- lm(
+  abundance_6 ~
+    nat_hab * change_MAT,
+  data = tf1a_dat
+)
+
+plot_tf1a_crop$abundance_6 <-
+  c(predict(mod2a, newdata = plot_tf1a_crop, se = FALSE))
+
+heatmap_tf1f <- ggplot() +
+  geom_raster(data = plot_tf1a_crop,
+              aes(x = nat_hab,
+                  y = change_MAT,
+                  fill = abundance_6)) +
+  geom_contour(
+    data = plot_tf1a_crop,
+    aes(x = nat_hab,
+        y = change_MAT,
+        z = abundance_6),
+    bins = 10,
+    color = 'white',
+    alpha = 0.5
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    begin = 10/30,
+    end = 30/30,
+    alpha = 1,
+    breaks = c(5, 15, 25),
+    labels = c("low", "med", "high")
+    ) +
+  scale_x_continuous(
+    breaks = c(-1, 1),
+    labels = c("low", "high")) +
+  scale_y_continuous(
+    breaks = c(-1, 1),
+    labels = c("low", "high")) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    axis.line = element_blank(),
+    # axis.title.x = element_blank(),
+    legend.position = "right",
+    # legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")) +
+  labs(
+    title = "Antagonistic",
+    fill = "Abundance",
+       x = "nat.hab (%)",
+       y = "change in MAT")
+heatmap_tf1f
 ```
 
 # Figure 3
 
+Pollinators:
 ```{r}
-Trait_syndromes_bar <- data.frame(
-  count_pollinator = c(0, 0, 0, 0, 0, 0, 777, 0, 0, 0, 193, 0, 0, 0, 323, 0),
-  count_pest = c(0, 0, 1, 0, 0, 0, 15, 0, 0, 209, 0, 0, 0, 225, 9, 0),
-  count_nat_enemy = c(119, 0, 496, 519, 275, 0, 295, 349, 0, 0, 198, 0, 81, 134, 2, 14),
-  diet_breadth = c("diet generalist",
-                   "diet generalist",
-                   "diet generalist",
-                   "diet generalist",
-                   "diet generalist",
-                   "diet generalist",
-                   "diet generalist",
-                   "diet generalist",
-                   "diet specialist",
-                   "diet specialist",
-                   "diet specialist",
-                   "diet specialist",
-                   "diet specialist",
-                   "diet specialist",
-                   "diet specialist",
-                   "diet specialist"),
-  habitat_breadth = c("generalist",
-                      "generalist",
-                      "generalist",
-                      "generalist",
-                      "specialist",
-                      "specialist",
-                      "specialist",
-                      "specialist",
-                      "generalist",
-                      "generalist",
-                      "generalist",
-                      "generalist",
-                      "specialist",
-                      "specialist",
-                      "specialist",
-                      "specialist"),
-  dispersal_mode = c("wind", "flight/wind", "flight", "ground", "wind", "flight/wind", "flight", "ground", "wind", "flight/wind", "flight", "ground", "wind", "flight/wind", "flight", "ground")
+climate_land_abund %>%
+  filter(Pollinator_study == 1) %>%
+  count(ts_poll_01_abund > 0)
+climate_land_abund %>%
+  filter(Pollinator_study == 1) %>%
+  count(ts_poll_02_abund > 0)
+climate_land_abund %>%
+  filter(Pollinator_study == 1) %>%
+  count(ts_poll_03_abund > 0)
+climate_land_abund %>%
+  filter(Pollinator_study == 1) %>%
+  count(ts_poll_04_abund > 0)
+```
+
+Pests:
+```{r}
+climate_land_abund %>%
+  filter(Pest_study == 1) %>%
+  count(ts_pest_01_abund > 0)
+climate_land_abund %>%
+  filter(Pest_study == 1) %>%
+  count(ts_pest_02_abund > 0)
+climate_land_abund %>%
+  filter(Pest_study == 1) %>%
+  count(ts_pest_03_abund > 0)
+climate_land_abund %>%
+  filter(Pest_study == 1) %>%
+  count(ts_pest_04_abund > 0)
+climate_land_abund %>%
+  filter(Pest_study == 1) %>%
+  count(ts_pest_05_abund > 0)
+climate_land_abund %>%
+  filter(Pest_study == 1) %>%
+  count(ts_pest_06_abund > 0)
+```
+
+Natural enemies:
+```{r}
+climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  count(ts_nat_enemy_01_abund > 0)
+climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  count(ts_nat_enemy_02_abund > 0)
+climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  count(ts_nat_enemy_03_abund > 0)
+climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  count(ts_nat_enemy_04_abund > 0)
+climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  count(ts_nat_enemy_05_abund > 0)
+climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  count(ts_nat_enemy_06_abund > 0)
+climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  count(ts_nat_enemy_07_abund > 0)
+climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  count(ts_nat_enemy_08_abund > 0)
+climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  count(ts_nat_enemy_09_abund > 0)
+climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  count(ts_nat_enemy_10_abund > 0)
+climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  count(ts_nat_enemy_11_abund > 0)
+```
+
+
+
+
+```{r}
+Trait_bar <- data.frame(
+  abund = c(
+    #poll
+    0, 0, 0, 0, 
+    775, 0, 0, 0,
+    193, 0, 0, 0,
+    323, 0, 0, 0,
+    #pest
+    1, 11, 0, 0, 
+    15, 0, 0, 0,
+    0, 209, 0, 0,
+    9, 235, 0, 0,
+    #nat_enemy
+    496, 0, 519, 119, 
+    295, 0, 349, 292,
+    198, 0, 0, 0,
+    2, 134, 14, 81
+  ),
+  fg = c(
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pollinators",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "pests",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies",
+    "natural enemies"
+  ),
+  diet = c(
+    "generalist", 
+    "generalist", 
+    "generalist", 
+    "generalist",
+    "generalist", 
+    "generalist", 
+    "generalist", 
+    "generalist",  
+    "specialist", 
+    "specialist", 
+    "specialist", 
+    "specialist", 
+    "specialist", 
+    "specialist", 
+    "specialist", 
+    "specialist"),
+  habitat = c(
+    "habitat generalist",
+    "habitat generalist",
+    "habitat generalist",
+    "habitat generalist",
+    "habitat specialist",
+    "habitat specialist",
+    "habitat specialist",
+    "habitat specialist",
+    "habitat generalist",
+    "habitat generalist",
+    "habitat generalist",
+    "habitat generalist",
+    "habitat specialist",
+    "habitat specialist",
+    "habitat specialist",
+    "habitat specialist"),
+  dispersal = c("flight", "flight/wind", "ground", "wind")
 )
-
-Trait_syndromes_bar <-
-  Trait_syndromes_bar %>%
-  mutate(
-    percent_pollinator =
-      (count_pollinator/1088)*100,
-    percent_pest =
-      (count_pest/894)*100,
-    percent_nat_enemy =
-      (count_nat_enemy/1703)*100
-  )
-
-Trait_syndromes_bar_pollinator <-
-  Trait_syndromes_bar %>%
-  filter(!count_pollinator == 0)
-Trait_syndromes_bar_pest <-
-    Trait_syndromes_bar %>%
-  filter(!count_pest == 0)
-Trait_syndromes_bar_nat_enemy <-
-    Trait_syndromes_bar %>%
-  filter(!count_nat_enemy == 0)
+Trait_bar <- Trait_bar %>%
+  mutate(percent = case_when(
+    fg == "pollinators" ~ (abund / 1086) * 100,
+    fg == "pests" ~ (abund / 902) * 100,
+    fg == "natural enemies" ~ (abund / 1728) * 100
+  )) 
+Trait_bar[Trait_bar == 0] <- NA
 ```
 
-
+fig3_plot:
 ```{r}
-Bar_pollinator <- ggplot(
-  data = Trait_syndromes_bar,
-  aes(x = habitat_breadth,
-      y = percent_pollinator,
-      fill = dispersal_mode)) +
+fig3_plot <- ggplot(
+  data = Trait_bar,
+  aes(y = percent,
+      x = diet,
+      fill = dispersal)) +
   geom_bar(stat = "identity",
-           position =
-             position_dodge(preserve = "single"),
+           position = position_dodge(width = .9),
            colour = "black") +
-  facet_grid(~diet_breadth, drop = F
-             ) +
-  labs(title = "a. Pollinators",
-       fill = "Dispersal",
-       y = "") +
-  scale_fill_manual(values = c(
-    "#f0f921",
-    "#ed7953",
-    "#9c179e",
-    "#0d0887"
-    ),
-                    drop = F) +
-  scale_y_continuous(breaks = c(0, 30, 60, 90),
-                     labels = c("0", "30", "60", "90")) +
-  scale_x_discrete(labels =
-                     c("habitat\ngeneralist",
-                     "habitat\nspecialist")) +
+  geom_hline(yintercept = 20, 
+             linetype = "dashed") +
+  facet_grid(fg ~ habitat, scale = "free_y") +
+  labs(y = "% sites present") +
+  scale_fill_manual(
+    values = c("#f0f921","#ed7953", "#9c179e", "#0d0887"),              
+    drop = T) +
+  scale_x_discrete(
+    labels = c("diet\ngeneralist", "diet\nspecialist")) +
+  # scale_y_continuous(
+  #   breaks = c(0, 30, 60, 90),
+  #   limits = c(-2, 102)) +
   theme_classic() +
   theme(
     aspect.ratio = 1,
-    legend.position = "none",
-    axis.text.y = element_text(size = 9,
-                               colour = "black"),
-    axis.text.x = element_blank(),
-    plot.title = element_blank(),
-    axis.title.y = element_blank(),
-    axis.title.x = element_blank(),
-    panel.grid = element_blank(),
-    # strip.background = element_blank(),
-    strip.text = element_text(size = 9,
-                               colour = "black"),
-    plot.margin = unit(c(0,0,0,0), "cm")
-  )
-Bar_pollinator
-```
-
-```{r}
-Bar_pest <- ggplot(
-  data = Trait_syndromes_bar,
-  aes(x = habitat_breadth,
-      y = percent_pest,
-      fill = dispersal_mode)) +
-  geom_bar(stat = "identity",
-           position = position_dodge(preserve = "single"), colour = "black") +
-  facet_grid(~diet_breadth, drop = F
-             ) +
-  labs(title = "a. pests",
-       fill = "Dispersal",
-       y = "") +
-  scale_fill_manual(values = c(
-    "#f0f921",
-    "#ed7953",
-    "#9c179e",
-    "#0d0887"
-    ),
-                    drop = F) +
-  scale_y_continuous(breaks = c(0, 10, 20, 30),
-                     labels = c("0", "10", "20", "30")) +
-  scale_x_discrete(labels =
-                     c("habitat\ngeneralist",
-                     "habitat\nspecialist")) +
-  theme_classic() +
-  theme(
-    aspect.ratio = 1,
-    legend.position = "none",
-    axis.text.y = element_text(size = 9,
-                               colour = "black"),
-    axis.text.x = element_blank(),
-    plot.title = element_blank(),
-    axis.title.y = element_blank(),
-    axis.title.x = element_blank(),
-    panel.grid = element_blank(),
-    strip.background = element_blank(),
-    strip.text = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")
-  )
-Bar_pest
-```
-
-```{r}
-Bar_nat_enemy <- ggplot(
-  data = Trait_syndromes_bar,
-  aes(x = habitat_breadth,
-      y = percent_nat_enemy,
-      fill = dispersal_mode)) +
-  geom_bar(stat = "identity",
-           position = position_dodge(
-             preserve = "single"),
-           colour = "black") +
-  facet_grid(~diet_breadth, drop = F
-             ) +
-  labs(title = "c. nat_enemys",
-       fill = "Dispersal",
-       y = ""
-       ) +
-  scale_fill_manual(values = c(
-    "#f0f921",
-    "#ed7953",
-    "#9c179e",
-    "#0d0887"),
-                    drop = F) +
-  scale_y_continuous(breaks = c(0, 15, 30),
-                     labels = c("0", "15", "30")) +
-  scale_x_discrete(labels =
-                     c("habitat\ngeneralist",
-                     "habitat\nspecialist")) +
-  theme_classic() +
-  theme(
-    aspect.ratio = 1,
-    legend.position = "none",
-    axis.text.y = element_text(size = 9,
-                               colour = "black"),
-    axis.text.x = element_text(size = 9,
-                               colour = "black"),
-    plot.title = element_blank(),
-    axis.title.y = element_blank(),
-    axis.title.x = element_blank(),
-    panel.grid = element_blank(),
-    strip.background = element_blank(),
-    strip.text = element_blank(),
-    plot.margin = unit(c(0,0,0,0), "cm")
-  )
-Bar_nat_enemy
-```
-
-
-```{r}
-Bar_legend <- ggplot(
-  data = Trait_syndromes_bar,
-  aes(x = habitat_breadth,
-      y = percent_nat_enemy,
-      fill = dispersal_mode)) +
-  geom_bar(stat = "identity",
-           position = position_dodge(0.9), colour = "black") +
-  facet_grid(~diet_breadth) +
-  labs(title = "c. Natural enemies",
-       fill = "Dispersal",
-       x = "Habitat",
-       y = "% of sampling locations where present") +
-  scale_fill_manual(values = c(
-    "#f0f921",
-    "#ed7953",
-    "#9c179e",
-    "#0d0887"),
-                    drop = F) +
-  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
-  theme_classic() +
-  guides(fill = guide_legend(reverse = F)) +
-  theme(
     legend.position = "right",
-    axis.title.x = element_text(size = 10),
-    legend.title = element_text(size = 10),
+    axis.title.x = element_blank(),
+    axis.line = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1.1,
+      fill = NA),
     strip.background = element_blank(),
     strip.text = element_text(size = 9,
-                               colour = "black",
-                              hjust = 0)
+                               colour = "black"),
+    plot.margin = unit(c(0,0.1,0,0), "cm")
   )
-Bar_legend
+fig3_plot
 ```
 
 # Figure 4
 
 ```{r}
-citable_02 <- read.csv("~/Desktop/clim_land_arthropods/citable_02.csv")
-citable_03 <- read.csv("~/Desktop/clim_land_arthropods/citable_03.csv")
+citable_01 <- read.csv("~/Desktop/clim_land_arthropods/citable_01.csv")
+citable_05 <- read.csv("~/Desktop/clim_land_arthropods/citable_05.csv")
 citable_06 <- read.csv("~/Desktop/clim_land_arthropods/citable_06.csv")
+citable_07 <- read.csv("~/Desktop/clim_land_arthropods/citable_07.csv")
 citable_08 <- read.csv("~/Desktop/clim_land_arthropods/citable_08.csv")
+citable_09 <- read.csv("~/Desktop/clim_land_arthropods/citable_09.csv")
+citable_10 <- read.csv("~/Desktop/clim_land_arthropods/citable_10.csv")
+citable_11 <- read.csv("~/Desktop/clim_land_arthropods/citable_11.csv")
 ```
 
 ## Formatting
 
 ```{r}
-citable_02 <- citable_02 %>%
-  mutate(
-    fg_ts = "02"
-  )
-citable_03 <- citable_03 %>%
-  mutate(
-    fg_ts = "03"
-  )
+citable_01 <- citable_01 %>%
+  mutate(fg_ts = "fg_01")
+citable_05 <- citable_05 %>%
+  mutate(fg_ts = "fg_05")
 citable_06 <- citable_06 %>%
-  mutate(
-    fg_ts = "06"
-  )
+  mutate(fg_ts = "fg_06")
+citable_07 <- citable_07 %>%
+  mutate(fg_ts = "fg_07")
 citable_08 <- citable_08 %>%
-  mutate(
-    fg_ts = "08"
-  )
-ci_graphic <- rbind(
-  citable_02,
-  citable_03,
-  citable_06,
-  citable_08
-)
-```
+  mutate(fg_ts = "fg_08")
+citable_09 <- citable_09 %>%
+  mutate(fg_ts = "fg_09")
+citable_10 <- citable_10 %>%
+  mutate(fg_ts = "fg_10")
+citable_11 <- citable_11 %>%
+  mutate(fg_ts = "fg_11")
 
-```{r}
+ci_graphic <- rbind(
+  citable_01,
+  citable_05,
+  citable_06,
+  citable_07,
+  citable_08,
+  citable_09,
+  citable_10,
+  citable_11
+)
 ci_graphic <- ci_graphic %>%
   pivot_longer(
     cols = ends_with("_2.5"),
@@ -613,12 +903,33 @@ ci_graphic <- ci_graphic %>%
     CI_97.5 = case_when(
       spatial_scale == 100 ~ CI_100_97.5,
       spatial_scale == 250 ~ CI_250_97.5,
-      spatial_scale == 500 ~ CI_500_97.5
+      spatial_scale == 500 ~ CI_500_97.5,
+      spatial_scale == 1000 ~ CI_1000_97.5,
+      spatial_scale == 2000 ~ CI_2000_97.5,
+      spatial_scale == 3000 ~ CI_3000_97.5
+    ),
+    Estimate = case_when(
+      spatial_scale == 100 ~ Estimate_100,
+      spatial_scale == 250 ~ Estimate_250,
+      spatial_scale == 500 ~ Estimate_500,
+      spatial_scale == 1000 ~ Estimate_1000,
+      spatial_scale == 2000 ~ Estimate_2000,
+      spatial_scale == 3000 ~ Estimate_3000
     )
   ) %>%
   dplyr::select(-CI_100_97.5,
                 -CI_250_97.5,
-                -CI_500_97.5) %>%
+                -CI_500_97.5,
+                -CI_1000_97.5,
+                -CI_2000_97.5,
+                -CI_3000_97.5,
+                -Estimate_100,
+                -Estimate_250,
+                -Estimate_500,
+                -Estimate_1000,
+                -Estimate_2000,
+                -Estimate_3000
+                ) %>%
   mutate(
     significant = case_when(
       CI_2.5 > 0 & CI_97.5 > 0 |
@@ -629,300 +940,51 @@ ci_graphic <- ci_graphic %>%
     )
   )
 ci_graphic$spatial_scale <-
-  factor(ci_graphic$spatial_scale,
-         ordered = T,
-         levels = c("500", 
-                    "250", 
-                    "100"))
-```
-
-```{r}
-level_order <- c(
-  "TAP:maxT^2",
-  "TAP:minT^2",
-  "TAP:MAT^2",
-  "TAP:edge^2",
-  "TAP:SNH^2",
-  "TAP:arable^2",
-  "maxT^2:TAP",
-  "maxT:TAP^2",
-  "maxT:TAP",
-  "maxT:edge^2",
-  "maxT:SNH^2",
-  "maxT:arable^2",
-  "minT^2:TAP",
-  "minT:TAP^2",
-  "minT:TAP",
-  "minT:edge^2",
-  "minT:SNH^2",
-  "minT:arable^2",
-  "MAT^2:TAP",
-  "MAT:TAP^2",
-  "MAT:TAP",
-  "MAT:edge^2",
-  "MAT:SNH^2",
-  "MAT:arable^2",
-  "edge:TAP^2",
-  "edge^2:TAP",
-  "edge:TAP",
-  "edge:maxT^2",
-  "edge:maxT",
-  "edge:minT^2",
-  "edge:minT",
-  "edge:MAT^2",
-  "edge:MAT",
-  "edge:SNH^2",
-  "edge:arable^2",
-  "SNH^2:TAP",
-  "SNH:TAP^2",
-  "SNH:TAP",
-  "SNH^2:maxT",
-  "SNH:maxT^2",
-  "SNH:maxT",
-  "SNH^2:minT",
-  "SNH:minT^2",
-  "SNH:minT",
-  "SNH^2:MAT",
-  "SNH:MAT^2",
-  "SNH:MAT",
-  "SNH^2:edge",
-  "SNH:edge^2",
-  "SNH:edge",
-  "arable:TAP^2",
-  "arable:TAP",
-  "arable:maxT^2",
-  "arable:maxT",
-  "arable:minT^2",
-  "arable:minT",
-  "arable:MAT^2",
-  "arable:MAT",
-  "arable:edge^2",
-  "arable:edge",
-  "TAP^2",
-  "TAP",
-  "maxT^2",
-  "maxT",
-  "minT^2",
-  "minT",
-  "MAT^2",
-  "MAT",
-  "edge^2",
-  "edge",
-  "SNH^2",
-  "SNH",
-  "arable^2",
-  "arable"
-)
-```
-
-```{r}
+  factor(
+    ci_graphic$spatial_scale,
+    ordered = T,
+    levels = c("3000", "2000", "1000", "500", "250", "100")
+  )
 ci_graphic <- ci_graphic %>%
-  rowwise() %>%
   mutate(
-    effect_size = median(c(CI_2.5,CI_97.5))) %>%
-  ungroup()
+    term = str_replace_all(term, "cond.scale", ""),
+    term = str_replace_all(term, "scale", "")) %>%
+  mutate(
+    term = case_when(
+      term == "(semifor_l)" ~ "nat.hab",
+      term == "(change3_MAT)" ~ "chg.MAT",
+      term == "(change3_VAT)" ~ "chg.VAT",
+      term == "(semifor_l):(change3_MAT)" ~ "nat.hab*chg.MAT",
+      term == "(change3_MAT):(semifor_l)" ~ "nat.hab*chg.MAT",
+      term == "(semifor_l):(change3_VAT)" ~ "nat.hab*chg.VAT",
+      term == "(change3_VAT):(semifor_l)" ~ "nat.hab*chg.VAT",
+      term == "(change3_MAT):(change3_VAT)" ~ "chg.MAT*chg.VAT",
+      term == "(change3_VAT):(change3_MAT)" ~ "chg.MAT*chg.VAT"
+      ))
+
+level_order <- c(
+  "nat.hab",
+  "chg.MAT",
+  "chg.VAT",
+  "nat.hab*chg.MAT",
+  "nat.hab*chg.VAT",
+  "chg.MAT*chg.VAT"
+  )
 ```
 
-## Pollinators
+## 01. All arthropods
 
 ```{r}
-ci_02_int_9.1 <- subset(ci_graphic, fg_ts == "02" & model == "modint_9.1")
-ci_02_int_9.2 <- subset(ci_graphic, fg_ts == "02" & model == "modint_9.2")
+ci_01_mod1 <- ci_graphic %>%
+  filter(fg_ts == "fg_01")
 ```
 
-plot_02_int_9.1:
+plot_01_mod1:
 ```{r}
-plot_02_int_9.1 <-
-  ggplot(data = ci_02_int_9.1, aes(
-    y = factor(term,
-               level = level_order),
-    alpha = spatial_scale,
-    colour = factor(significant)
-  )) +
-  geom_vline(
-    aes(xintercept = 0),
-    colour = "black",
-    linetype = "dashed",
-    linewidth = 0.2
-  ) +
-  geom_errorbarh(aes(xmin = CI_2.5, 
-                     xmax = CI_97.5),
-                 position = position_dodge(width = 0.6),
-                 linewidth = 0.3,
-                 height = 0) +
-  theme_classic() +
-  theme(
-    aspect.ratio = 1.4,
-    axis.title.y = element_blank(),
-    axis.text.y = element_text(
-     face = c('plain'),
-      colour = c("black")),
-    legend.position = "none",
-    plot.title = element_text(size = 8),
-    axis.text = element_text(size = 7),
-    axis.title = element_text(size = 8),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
-  ) +
-  scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
-  scale_color_manual(values = c("gray80", "#0d0887")) +
-  labs(x = "95% CI") +
-  guides(alpha = guide_legend(reverse = TRUE,
-                              title = "Spatial scale (m)"))
-plot_02_int_9.1
-```
-
-plot_02_int_9.2:
-```{r}
-plot_02_int_9.2 <-
-  ggplot(data = ci_02_int_9.2, aes(
-    y = factor(term,
-               level = level_order),
-    alpha = spatial_scale,
-    colour = factor(significant)
-  )) +
-  geom_vline(
-    aes(xintercept = 0),
-    colour = "black",
-    linetype = "dashed",
-    linewidth = 0.2
-  ) +
-  geom_errorbarh(aes(xmin = CI_2.5, 
-                     xmax = CI_97.5),
-                 position = position_dodge(width = 0.6),
-                 linewidth = 0.3,
-                 height = 0) +
-  theme_classic() +
-  theme(
-    aspect.ratio = 1.4,
-    axis.title.y = element_blank(),
-    axis.text.y = element_text(
-     face = c('plain'),
-      colour = c("black")),
-    legend.position = "none",
-    plot.title = element_text(size = 8),
-    axis.text = element_text(size = 7),
-    axis.title = element_text(size = 8),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
-  ) +
-  scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
-  scale_color_manual(values = c("gray80", "#0d0887")) +
-  labs(x = "95% CI") +
-  guides(alpha = guide_legend(reverse = TRUE,
-                              title = "Spatial scale (m)"))
-plot_02_int_9.2
-```
-
-## Pests
-
-```{r}
-ci_03_add_4 <- subset(ci_graphic, fg_ts == "03" & model == "modadd_4")
-```
-
-plot_03_add_4:
-```{r}
-plot_03_add_4 <-
-  ggplot(data = ci_03_add_4, aes(
-    y = factor(term,
-               level = level_order),
-    alpha = spatial_scale,
-    colour = factor(significant)
-  )) +
-  geom_vline(
-    aes(xintercept = 0),
-    colour = "black",
-    linetype = "dashed",
-    linewidth = 0.2
-  ) +
-  geom_errorbarh(aes(xmin = CI_2.5, 
-                     xmax = CI_97.5),
-                 position = position_dodge(width = 0.6),
-                 linewidth = 0.3,
-                 height = 0) +
-  theme_classic() +
-  theme(
-    aspect.ratio = 1.4,
-    axis.title.y = element_blank(),
-    axis.text.y = element_text(
-     face = c('plain'),
-      colour = c("black")),
-    legend.position = "none",
-    plot.title = element_text(size = 8),
-    axis.text = element_text(size = 7),
-    axis.title = element_text(size = 8),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
-  ) +
-  scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
-  scale_color_manual(values = c("gray80", "#0d0887")) +
-  labs(x = "95% CI") +
-  guides(alpha = guide_legend(reverse = TRUE,
-                              title = "Spatial scale (m)"))
-plot_03_add_4
-```
-
-## Diet specialist pollinators
-
-```{r}
-ci_06_int_3.1 <- subset(ci_graphic, fg_ts == "06" & model == "modint_3.1")
-ci_06_int_7.1 <- subset(ci_graphic, fg_ts == "06" & model == "modint_7.1")
-ci_06_int_7.2 <- subset(ci_graphic, fg_ts == "06" & model == "modint_7.2")
-ci_06_int_7.3 <- subset(ci_graphic, fg_ts == "06" & model == "modint_7.3")
-```
-
-plot_06_int_3.1:
-```{r}
-plot_06_int_3.1 <-
-  ggplot(data = ci_06_int_3.1, aes(
-    y = factor(term,
-               level = level_order),
-    alpha = spatial_scale,
-    colour = factor(significant)
-  )) +
-  geom_vline(
-    aes(xintercept = 0),
-    colour = "black",
-    linetype = "dashed",
-    linewidth = 0.2
-  ) +
-  geom_errorbarh(aes(xmin = CI_2.5, 
-                     xmax = CI_97.5),
-                 position = position_dodge(width = 0.6),
-                 linewidth = 0.3,
-                 height = 0) +
-  theme_classic() +
-  theme(
-    aspect.ratio = 1.4,
-    axis.title.y = element_blank(),
-    axis.text.y = element_text(
-     face = c('plain'),
-      colour = c("black")),
-    legend.position = "none",
-    plot.title = element_text(size = 8),
-    axis.text = element_text(size = 7),
-    axis.title = element_text(size = 8),
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
-  ) +
-  scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
-  scale_color_manual(values = c("gray80", "#0d0887")) +
-  labs(x = "95% CI") +
-  guides(alpha = guide_legend(reverse = TRUE,
-                              title = "Spatial scale (m)"))
-plot_06_int_3.1
-```
-
-plot_06_int_7.1:
-```{r}
-plot_06_int_7.1 <-
-  ggplot(data = ci_06_int_7.1, aes(
-    y = factor(term,
-               level = level_order
+plot_01_mod1 <-
+  ggplot(data = ci_01_mod1, aes(
+    y = factor(term, 
+               level = rev(level_order)
                ),
     alpha = spatial_scale,
     colour = factor(significant)
@@ -940,8 +1002,9 @@ plot_06_int_7.1 <-
                  height = 0) +
   theme_classic() +
   theme(
-    aspect.ratio = 1.4,
+    aspect.ratio = 1,
     axis.title.y = element_blank(),
+    axis.line = element_blank(),
     axis.text.y = element_text(
      face = c('plain'),
       colour = c("black")),
@@ -951,22 +1014,36 @@ plot_06_int_7.1 <-
     axis.title = element_text(size = 8),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")
   ) +
   scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
   scale_color_manual(values = c("gray80", "#0d0887")) +
-  labs(x = "95% CI") +
+  scale_x_continuous(breaks = c(-0.8, -0.4, 0, 0.4, 0.8)) +
+  labs(x = "95% CI",
+       y = "All arthropods",
+       title = "0.1-3 km:") +
   guides(alpha = guide_legend(reverse = TRUE,
                               title = "Spatial scale (m)"))
-plot_06_int_7.1
+plot_01_mod1
 ```
 
-plot_06_int_7.2:
+## 05. Diet generalist pollinators
+
 ```{r}
-plot_06_int_7.2 <-
-  ggplot(data = ci_06_int_7.2, aes(
-    y = factor(term,
-               level = level_order
+ci_05_mod1 <- ci_graphic %>%
+  filter(fg_ts == "fg_05")
+```
+
+plot_05_mod1:
+```{r}
+plot_05_mod1 <-
+  ggplot(data = ci_05_mod1, aes(
+    y = factor(term, 
+               level = rev(level_order)
                ),
     alpha = spatial_scale,
     colour = factor(significant)
@@ -984,8 +1061,9 @@ plot_06_int_7.2 <-
                  height = 0) +
   theme_classic() +
   theme(
-    aspect.ratio = 1.4,
+    aspect.ratio = 1,
     axis.title.y = element_blank(),
+    axis.line = element_blank(),
     axis.text.y = element_text(
      face = c('plain'),
       colour = c("black")),
@@ -995,22 +1073,38 @@ plot_06_int_7.2 <-
     axis.title = element_text(size = 8),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")
   ) +
   scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
   scale_color_manual(values = c("gray80", "#0d0887")) +
-  labs(x = "95% CI") +
+  scale_x_continuous(breaks = c(-0.8, -0.4, 0, 0.4, 0.8)) +
+  labs(x = "95% CI",
+       y = "DG pollinators",
+       title = "0.1-3 km:") +
   guides(alpha = guide_legend(reverse = TRUE,
                               title = "Spatial scale (m)"))
-plot_06_int_7.2
+plot_05_mod1
 ```
 
-plot_06_int_7.3:
+## 06. Diet specialist pollinators
+
 ```{r}
-plot_06_int_7.3 <-
-  ggplot(data = ci_06_int_7.3, aes(
-    y = factor(term,
-               level = level_order
+ci_06_mod1 <- ci_graphic %>%
+  filter(fg_ts == "fg_06" &
+           !spatial_scale == "2000" &
+           !spatial_scale == "3000")
+```
+
+plot_06_mod1:
+```{r}
+plot_06_mod1 <-
+  ggplot(data = ci_06_mod1, aes(
+    y = factor(term, 
+               level = rev(level_order)
                ),
     alpha = spatial_scale,
     colour = factor(significant)
@@ -1028,8 +1122,9 @@ plot_06_int_7.3 <-
                  height = 0) +
   theme_classic() +
   theme(
-    aspect.ratio = 1.4,
+    aspect.ratio = 1,
     axis.title.y = element_blank(),
+    axis.line = element_blank(),
     axis.text.y = element_text(
      face = c('plain'),
       colour = c("black")),
@@ -1039,28 +1134,37 @@ plot_06_int_7.3 <-
     axis.title = element_text(size = 8),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")
   ) +
   scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
   scale_color_manual(values = c("gray80", "#0d0887")) +
-  labs(x = "95% CI") +
+  scale_x_continuous(breaks = c(-0.8, -0.4, 0, 0.4, 0.8)) +
+  labs(x = "95% CI",
+       y = "DS pollinators",
+       title = "0.1-1 km:") +
   guides(alpha = guide_legend(reverse = TRUE,
                               title = "Spatial scale (m)"))
-plot_06_int_7.3
+plot_06_mod1
 ```
 
-## Habitat specialist pest
+## 07. Habitat generalist pests
 
 ```{r}
-ci_08_int_5.3 <- subset(ci_graphic, fg_ts == "08" & model == "modint_5.3")
+ci_07_mod1 <- ci_graphic %>%
+  filter(fg_ts == "fg_07")
 ```
 
-plot_08_int_5.3:
+plot_07_mod1:
 ```{r}
-plot_08_int_5.3 <-
-  ggplot(data = ci_08_int_5.3, aes(
-    y = factor(term,
-               level = level_order),
+plot_07_mod1 <-
+  ggplot(data = ci_07_mod1, aes(
+    y = factor(term, 
+               level = rev(level_order)
+               ),
     alpha = spatial_scale,
     colour = factor(significant)
   )) +
@@ -1077,8 +1181,9 @@ plot_08_int_5.3 <-
                  height = 0) +
   theme_classic() +
   theme(
-    aspect.ratio = 1.4,
+    aspect.ratio = 1,
     axis.title.y = element_blank(),
+    axis.line = element_blank(),
     axis.text.y = element_text(
      face = c('plain'),
       colour = c("black")),
@@ -1088,34 +1193,282 @@ plot_08_int_5.3 <-
     axis.title = element_text(size = 8),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
-    plot.margin = unit(c(0.1,0.1,0.1,0.1), "cm")
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")
   ) +
   scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
   scale_color_manual(values = c("gray80", "#0d0887")) +
-  labs(x = "95% CI") +
+  scale_x_continuous(breaks = c(-0.8, -0.4, 0, 0.4, 0.8)) +
+  labs(x = "95% CI",
+       y = "HG pests",
+       title = "0.1-3 km:") +
   guides(alpha = guide_legend(reverse = TRUE,
                               title = "Spatial scale (m)"))
-plot_08_int_5.3
+plot_07_mod1
+```
+
+## 08. Habitat specialist pests
+
+```{r}
+ci_08_mod1 <- ci_graphic %>%
+  filter(fg_ts == "fg_08" &
+           !spatial_scale == "2000" &
+           !spatial_scale == "3000")
+```
+
+plot_08_mod1:
+```{r}
+plot_08_mod1 <-
+  ggplot(data = ci_08_mod1, aes(
+    y = factor(term, 
+               level = rev(level_order)
+               ),
+    alpha = spatial_scale,
+    colour = factor(significant)
+  )) +
+  geom_vline(
+    aes(xintercept = 0),
+    colour = "black",
+    linetype = "dashed",
+    linewidth = 0.2
+  ) +
+  geom_errorbarh(aes(xmin = CI_2.5, 
+                     xmax = CI_97.5),
+                 position = position_dodge(width = 0.6),
+                 linewidth = 0.3,
+                 height = 0) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    axis.title.y = element_blank(),
+    axis.line = element_blank(),
+    axis.text.y = element_text(
+     face = c('plain'),
+      colour = c("black")),
+    legend.position = "none",
+    plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.title = element_text(size = 8),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
+  scale_color_manual(values = c("gray80", "#0d0887")) +
+  scale_x_continuous(breaks = c(-0.8, -0.4, 0, 0.4, 0.8)) +
+  labs(x = "95% CI",
+       y = "HS pests",
+       title = "0.1-3 km:") +
+  guides(alpha = guide_legend(reverse = TRUE,
+                              title = "Spatial scale (m)"))
+plot_08_mod1
+```
+
+## 09. Habitat generalist flight dispersal natural enemies
+
+```{r}
+ci_09_mod1 <- ci_graphic %>%
+  filter(fg_ts == "fg_09" &
+           !spatial_scale == "2000" &
+           !spatial_scale == "3000"
+         )
+```
+
+plot_09_mod1:
+```{r}
+plot_09_mod1 <-
+  ggplot(data = ci_09_mod1, aes(
+    y = factor(term, 
+               level = rev(level_order)
+               ),
+    alpha = spatial_scale,
+    colour = factor(significant)
+  )) +
+  geom_vline(
+    aes(xintercept = 0),
+    colour = "black",
+    linetype = "dashed",
+    linewidth = 0.2
+  ) +
+  geom_errorbarh(aes(xmin = CI_2.5, 
+                     xmax = CI_97.5),
+                 position = position_dodge(width = 0.6),
+                 linewidth = 0.3,
+                 height = 0) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    axis.title.y = element_blank(),
+    axis.line = element_blank(),
+    axis.text.y = element_text(
+     face = c('plain'),
+      colour = c("black")),
+    legend.position = "none",
+    plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.title = element_text(size = 8),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
+  scale_color_manual(values = c("gray80", "#0d0887")) +
+  scale_x_continuous(breaks = c(-0.8, -0.4, 0, 0.4, 0.8)) +
+  labs(x = "95% CI",
+       y = "HG flight nat.en.",
+       title = "0.1-1 km:") +
+  guides(alpha = guide_legend(reverse = TRUE,
+                              title = "Spatial scale (m)"))
+plot_09_mod1
+```
+
+## 10. Habitat specialist ground dispersal natural enemies
+
+```{r}
+ci_10_mod1 <- ci_graphic %>%
+  filter(fg_ts == "fg_10" &
+           !spatial_scale == "3000")
+```
+
+plot_10_mod1:
+```{r}
+plot_10_mod1 <-
+  ggplot(data = ci_10_mod1, aes(
+    y = factor(term, 
+               level = rev(level_order)
+               ),
+    alpha = spatial_scale,
+    colour = factor(significant)
+  )) +
+  geom_vline(
+    aes(xintercept = 0),
+    colour = "black",
+    linetype = "dashed",
+    linewidth = 0.2
+  ) +
+  geom_errorbarh(aes(xmin = CI_2.5, 
+                     xmax = CI_97.5),
+                 position = position_dodge(width = 0.6),
+                 linewidth = 0.3,
+                 height = 0) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    axis.title.y = element_blank(),
+    axis.line = element_blank(),
+    axis.text.y = element_text(
+     face = c('plain'),
+      colour = c("black")),
+    legend.position = "none",
+    plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.title = element_text(size = 8),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
+  scale_color_manual(values = c("gray80", "#0d0887")) +
+  scale_x_continuous(breaks = c(-1, -0.5, 0, 0.5, 1)) +
+  labs(x = "95% CI",
+       y = "HS ground nat.en.",
+       title = "0.1-2 km:") +
+  guides(alpha = guide_legend(reverse = TRUE,
+                              title = "Spatial scale (m)"))
+plot_10_mod1
+```
+
+## 11. Habitat generalist ground dispersal natural enemies
+
+```{r}
+ci_11_mod1 <- ci_graphic %>%
+  filter(fg_ts == "fg_11" &
+           !spatial_scale == "3000")
+```
+
+plot_11_mod1:
+```{r}
+plot_11_mod1 <-
+  ggplot(data = ci_11_mod1, aes(
+    y = factor(term, 
+               level = rev(level_order)
+               ),
+    alpha = spatial_scale,
+    colour = factor(significant)
+  )) +
+  geom_vline(
+    aes(xintercept = 0),
+    colour = "black",
+    linetype = "dashed",
+    linewidth = 0.2
+  ) +
+  geom_errorbarh(aes(xmin = CI_2.5, 
+                     xmax = CI_97.5),
+                 position = position_dodge(width = 0.6),
+                 linewidth = 0.3,
+                 height = 0) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    axis.title.y = element_blank(),
+    axis.line = element_blank(),
+    axis.text.y = element_text(
+     face = c('plain'),
+      colour = c("black")),
+    legend.position = "none",
+    plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.title = element_text(size = 8),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  scale_alpha_manual(values = c(1, 1, 1, 1, 1, 1)) +
+  scale_color_manual(values = c("gray80", "#0d0887")) +
+  scale_x_continuous(breaks = c(-2, -1, 0, 1, 2, 3)) +
+  labs(x = "95% CI",
+       y = "HG ground nat.en.",
+       title = "0.1-2 km:") +
+  guides(alpha = guide_legend(reverse = TRUE,
+                              title = "Spatial scale (m)"))
+plot_11_mod1
 ```
 
 # Figure 5
 
-## Pollinators
+## 01. All arthropods
 
-Data frame:
+500 m:
 ```{r}
-climate_land_abund_02_500 <-
+climate_land_abund_01_500 <-
   climate_land_abund %>%
-  filter(Pollinator_study == 1) %>%
   dplyr::select(
-    fg_pollinator_abund_scaled,
-    semi_500,
-    edge_500,
-    arable_500,
-    TAP,
-    MAT,
-    min_temp,
-    max_temp,
+    total_abund,
+    sampling_effort_scaled,
+    semifor_500,
+    change3_MAT,
+    change3_VAT,
+    present3_MAT,
+    present3_VAT,
     StudyID_yr,
     Sampling_method,
     Block,
@@ -1124,134 +1477,98 @@ climate_land_abund_02_500 <-
   ) %>%
   ungroup() %>%
   na.omit() %>%
-  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(edge_500, degree = 2, prefix = "edge_") %>%
-  poly_add_columns(arable_500, degree = 2, prefix = "arable_") %>%
-  poly_add_columns(TAP, degree = 2, prefix = "TAP_") %>%
-  poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
-  poly_add_columns(min_temp, degree = 2, prefix = "min_temp_") %>%
-  poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>%
   mutate(
-    fg_02_l = log1p(fg_pollinator_abund_scaled),
-    semi_1_l = log1p(semi_1),
-    semi_2_l = log1p(semi_2),
-    edge_1_l = log1p(edge_1),
-    edge_2_l = log1p(edge_2),
-    arable_1_l = log1p(arable_1),
-    arable_2_l = log1p(arable_2),
-    TAP_1_l = log1p(TAP_1),
-    TAP_2_l = log1p(TAP_2),
-    MAT_1_l = log1p(MAT_1),
-    MAT_2_l = log1p(MAT_2),
-    min_temp_1_l = log1p(min_temp_1),
-    min_temp_2_l = log1p(min_temp_2),
-    max_temp_1_l = log1p(max_temp_1),
-    max_temp_2_l = log1p(max_temp_2)
+    abund_01 = total_abund,
+    semifor_l = semifor_500
   )
 ```
 
-### heatmap_02
+### heatmap_01.1
 
 ```{r}
-climate_land_abund_02_500 <- climate_land_abund_02_500 %>%
-  mutate(
-    semi_500_l = log1p(semi_500),
-    TAP_l = log1p(TAP)
-  )
+plot_01_500_dat_hull <- climate_land_abund_01_500 %>%
+  slice(chull(semifor_l, change3_MAT))
 
-plot_02_500_dat_hull <- climate_land_abund_02_500 %>%
-  slice(chull(semi_500_l, TAP_l))
+plot_01_500_dat_hull <- plot_01_500_dat_hull %>% dplyr::select(semifor_l, change3_MAT)
 
-plot_02_500_dat_hull <- plot_02_500_dat_hull %>%
-  dplyr::select(semi_500_l, TAP_l)
-
-plot_02_500_dat_hull_sf <- plot_02_500_dat_hull %>%
-  st_as_sf(coords = c("semi_500_l", "TAP_l")) %>%
+plot_01_500_dat_hull_sf <- plot_01_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_MAT")) %>%
   summarise() %>%
   st_cast("POLYGON") %>%
   st_convex_hull()
 
-plot_02_500_dat_xy <-
-  with(climate_land_abund_02_500,
+plot_01_500_dat_xy <-
+  with(climate_land_abund_01_500,
        expand.grid(
-         semi_500_l = seq(min(semi_500_l),
-                        max(semi_500_l),
-                        len = 400),
-         TAP_l = seq(min(TAP_l),
-                        max(TAP_l),
-                        len = 400)
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
        ))
 
-plot_02_500_dat_xy_sf = st_as_sf(
-  plot_02_500_dat_xy,
-  coords = c("semi_500_l", "TAP_l"))
+plot_01_500_dat_xy_sf = st_as_sf(
+  plot_01_500_dat_xy,
+  coords = c("semifor_l", "change3_MAT"))
 
-plot_02_crop <-
+plot_01_crop <-
   st_intersection(
-    plot_02_500_dat_xy_sf,
-    plot_02_500_dat_hull_sf) %>%
+    plot_01_500_dat_hull_sf,
+    plot_01_500_dat_xy_sf) %>%
   st_coordinates() %>%
   as.data.frame() %>%
-  rename(semi_500_l = X, TAP_l = Y)
+  rename(semifor_l = X, 
+         change3_MAT = Y) %>%
+  mutate(change3_VAT = mean(climate_land_abund_01_500$change3_VAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
 
-plot_02_crop <- plot_02_crop %>%
-  mutate(
-    semi_500 = (expm1(semi_500_l)),
-    TAP = (expm1(TAP_l))
-  ) %>%
-  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(TAP, degree = 2, prefix = "TAP_") %>%
-  mutate(
-    semi_1_l = log1p(semi_1),
-    semi_2_l = log1p(semi_2),
-    TAP_1_l = log1p(TAP_1),
-    TAP_2_l = log1p(TAP_2)
-  )
-
-mod_02 <- lmer(
-  fg_02_l ~
-    semi_2_l * TAP_1_l +
-    semi_1_l + TAP_1_l +
-    semi_2_l + TAP_2_l +
-    (1 | StudyID_yr) +
-    (1 | StudyID_yr:Sampling_method:Block),
-  data = climate_land_abund_02_500
+mod_01 <- glmmTMB(
+  abund_01 ~
+    scale(semifor_l) + scale(change3_MAT) +  scale(change3_VAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_01_500,
+  na.action = "na.fail"
 )
 
-plot_02_crop$fg_02_l <-
-  c(predict(mod_02, newdata = plot_02_crop, se = F, re.form = NA))
+plot_01_crop$abund_01 <- c(predict(
+  mod_01,
+  newdata = plot_01_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
 
-heatmap_02 <- ggplot() +
-  geom_raster(data = plot_02_crop,
-              aes(x = semi_500_l,
-                  y = TAP_l,
-                  fill = fg_02_l)) +
+heatmap_01.1 <- ggplot() +
+  geom_raster(data = plot_01_crop,
+              aes(x = semifor_l,
+                  y = change3_MAT,
+                  fill = abund_01)) +
   geom_contour(
-    data = plot_02_crop,
-    aes(x = semi_500_l,
-        y = TAP_l,
-        z = fg_02_l),
+    data = plot_01_crop,
+    aes(x = semifor_l,
+        y = change3_MAT,
+        z = abund_01),
     color = 'white',
-    alpha = 0.5
+    bins = 10,
+    alpha = 0.4
   ) +
   scale_fill_viridis_c(
     option = "plasma",
-    alpha = 1,
-    breaks = c(2.7, 3.0, 3.3, 3.6)
-    ) +
-  scale_y_continuous(
-    breaks = c(log1p(500), log1p(1000), log1p(2000), log1p(3000)),
-    labels = c(500, 1000, 2000, 3000)
-    ) +
-  scale_x_continuous(
-    breaks = c(log1p(0), log1p(2), log1p(10), log1p(30), log1p(80)),
-    labels = c(0, 2, 10, 30, 80)
+    alpha = 0.4
     ) +
   theme_classic() +
   theme(
     aspect.ratio = 1,
     # plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
+    axis.line = element_blank(),
     axis.title = element_text(size = 8),
     legend.text = element_text(size = 7),
     legend.position = "right",
@@ -1261,31 +1578,979 @@ heatmap_02 <- ggplot() +
     legend.box.spacing = unit(0.25, "pt"),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
     plot.margin = unit(c(0,0,0,0), "cm")
   ) +
   labs(
     fill = "Abundance",
-       x = "SNH (%) in 0.5 km",
-       y = "TAP (cm)")
-heatmap_02
+       x = "nat.hab (%) in 0.5 km",
+       y = "MAT change (°C)",
+    )
+heatmap_01.1
 ```
 
-## Pests
+### heatmap_01.2
 
-Data frame:
 ```{r}
-climate_land_abund_03_500 <-
+plot_01_500_dat_hull <- climate_land_abund_01_500 %>%
+  slice(chull(semifor_l, change3_VAT))
+
+plot_01_500_dat_hull <- plot_01_500_dat_hull %>% dplyr::select(semifor_l, change3_VAT)
+
+plot_01_500_dat_hull_sf <- plot_01_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_VAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_01_500_dat_xy <-
+  with(climate_land_abund_01_500,
+       expand.grid(
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300)
+       ))
+
+plot_01_500_dat_xy_sf = st_as_sf(
+  plot_01_500_dat_xy,
+  coords = c("semifor_l", "change3_VAT"))
+
+plot_01_crop <-
+  st_intersection(
+    plot_01_500_dat_hull_sf,
+    plot_01_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semifor_l = X, 
+         change3_VAT = Y) %>%
+  mutate(change3_MAT = mean(climate_land_abund_01_500$change3_MAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_01 <- glmmTMB(
+  abund_01 ~
+    scale(semifor_l) + scale(change3_MAT) +  scale(change3_VAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_01_500,
+  na.action = "na.fail"
+)
+
+plot_01_crop$abund_01 <- c(predict(
+  mod_01,
+  newdata = plot_01_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_01.2 <- ggplot() +
+  geom_raster(data = plot_01_crop,
+              aes(x = semifor_l,
+                  y = change3_VAT,
+                  fill = abund_01)) +
+  geom_contour(
+    data = plot_01_crop,
+    aes(x = semifor_l,
+        y = change3_VAT,
+        z = abund_01),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "nat.hab (%) in 0.5 km",
+       y = "VAT change (°C)",
+    )
+heatmap_01.2
+```
+
+
+### heatmap_01.3
+
+```{r}
+plot_01_500_dat_hull <- climate_land_abund_01_500 %>%
+  slice(chull(change3_VAT, change3_MAT))
+
+plot_01_500_dat_hull <- plot_01_500_dat_hull %>% dplyr::select(change3_VAT, change3_MAT)
+
+plot_01_500_dat_hull_sf <- plot_01_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("change3_VAT",
+               "change3_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_01_500_dat_xy <-
+  with(climate_land_abund_01_500,
+       expand.grid(
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
+       ))
+
+plot_01_500_dat_xy_sf = st_as_sf(
+  plot_01_500_dat_xy,
+  coords = c("change3_VAT", "change3_MAT"))
+
+plot_01_crop <-
+  st_intersection(
+    plot_01_500_dat_hull_sf,
+    plot_01_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(change3_VAT = X, 
+         change3_MAT = Y) %>%
+  mutate(semifor_l = mean(climate_land_abund_01_500$semifor_l),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_01 <- glmmTMB(
+  abund_01 ~
+    scale(semifor_l) + scale(change3_MAT) +  scale(change3_VAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_01_500,
+  na.action = "na.fail"
+)
+
+plot_01_crop$abund_01 <- c(predict(
+  mod_01,
+  newdata = plot_01_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_01.3 <- ggplot() +
+  geom_raster(data = plot_01_crop,
+              aes(x = change3_VAT,
+                  y = change3_MAT,
+                  fill = abund_01)) +
+  geom_contour(
+    data = plot_01_crop,
+    aes(x = change3_VAT,
+        y = change3_MAT,
+        z = abund_01),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "VAT change (°C)",
+       y = "MAT change (°C)",
+    )
+heatmap_01.3
+```
+
+## 05. Diet generalist pollinators
+
+1000 m:
+```{r}
+climate_land_abund_05_1000 <-
+  climate_land_abund %>%
+  filter(Pollinator_study == 1) %>%
+  dplyr::select(
+    ts_poll_01_abund,
+    sampling_effort_scaled,
+    semifor_1000,
+    change3_MAT,
+    change3_VAT,
+    present3_MAT,
+    present3_VAT,
+    StudyID_yr,
+    Sampling_method,
+    Block,
+    Latitude,
+    Longitude
+  ) %>%
+  ungroup() %>%
+  na.omit() %>%
+  mutate(
+    abund_05 = ts_poll_01_abund,
+    semifor_l = semifor_1000
+  )
+```
+
+### heatmap_05.1
+
+```{r}
+plot_05_1000_dat_hull <- climate_land_abund_05_1000 %>%
+  slice(chull(semifor_l, change3_MAT))
+
+plot_05_1000_dat_hull <- plot_05_1000_dat_hull %>% dplyr::select(semifor_l, change3_MAT)
+
+plot_05_1000_dat_hull_sf <- plot_05_1000_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_05_1000_dat_xy <-
+  with(climate_land_abund_05_1000,
+       expand.grid(
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
+       ))
+
+plot_05_1000_dat_xy_sf = st_as_sf(
+  plot_05_1000_dat_xy,
+  coords = c("semifor_l", "change3_MAT"))
+
+plot_05_crop <-
+  st_intersection(
+    plot_05_1000_dat_hull_sf,
+    plot_05_1000_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semifor_l = X, 
+         change3_MAT = Y) %>%
+  mutate(change3_VAT = mean(climate_land_abund_05_1000$change3_VAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_05 <- glmmTMB(
+  abund_05 ~
+    scale(semifor_l) * scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_05_1000,
+  na.action = "na.fail"
+)
+
+plot_05_crop$abund_05 <- c(predict(
+  mod_05,
+  newdata = plot_05_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_05.1 <- ggplot() +
+  geom_raster(data = plot_05_crop,
+              aes(x = semifor_l,
+                  y = change3_MAT,
+                  fill = abund_05)) +
+  geom_contour(
+    data = plot_05_crop,
+    aes(x = semifor_l,
+        y = change3_MAT,
+        z = abund_05),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 1
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.title = element_text(size = 8),
+    axis.line = element_blank(),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "nat.hab (%) in 1 km",
+       y = "MAT change (°C)",
+    )
+heatmap_05.1
+```
+
+
+### heatmap_05.2
+
+```{r}
+plot_05_1000_dat_hull <- climate_land_abund_05_1000 %>%
+  slice(chull(semifor_l, change3_VAT))
+
+plot_05_1000_dat_hull <- plot_05_1000_dat_hull %>% dplyr::select(semifor_l, change3_VAT)
+
+plot_05_1000_dat_hull_sf <- plot_05_1000_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_VAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_05_1000_dat_xy <-
+  with(climate_land_abund_05_1000,
+       expand.grid(
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300)
+       ))
+
+plot_05_1000_dat_xy_sf = st_as_sf(
+  plot_05_1000_dat_xy,
+  coords = c("semifor_l", "change3_VAT"))
+
+plot_05_crop <-
+  st_intersection(
+    plot_05_1000_dat_hull_sf,
+    plot_05_1000_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semifor_l = X, 
+         change3_VAT = Y) %>%
+  mutate(change3_MAT = mean(climate_land_abund_05_1000$change3_MAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_05 <- glmmTMB(
+  abund_05 ~
+    scale(semifor_l) * scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_05_1000,
+  na.action = "na.fail"
+)
+
+plot_05_crop$abund_05 <- c(predict(
+  mod_05,
+  newdata = plot_05_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_05.2 <- ggplot() +
+  geom_raster(data = plot_05_crop,
+              aes(x = semifor_l,
+                  y = change3_VAT,
+                  fill = abund_05)) +
+  geom_contour(
+    data = plot_05_crop,
+    aes(x = semifor_l,
+        y = change3_VAT,
+        z = abund_05),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.title = element_text(size = 8),
+    axis.line = element_blank(),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "nat.hab (%) in 1 km",
+       y = "VAT change (°C)",
+    )
+heatmap_05.2
+```
+
+### heatmap_05.3
+
+```{r}
+plot_05_1000_dat_hull <- climate_land_abund_05_1000 %>%
+  slice(chull(change3_VAT, change3_MAT))
+
+plot_05_1000_dat_hull <- plot_05_1000_dat_hull %>% dplyr::select(change3_VAT, change3_MAT)
+
+plot_05_1000_dat_hull_sf <- plot_05_1000_dat_hull %>%
+  st_as_sf(coords = 
+             c("change3_VAT",
+               "change3_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_05_1000_dat_xy <-
+  with(climate_land_abund_05_1000,
+       expand.grid(
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
+       ))
+
+plot_05_1000_dat_xy_sf = st_as_sf(
+  plot_05_1000_dat_xy,
+  coords = c("change3_VAT", "change3_MAT"))
+
+plot_05_crop <-
+  st_intersection(
+    plot_05_1000_dat_hull_sf,
+    plot_05_1000_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(change3_VAT = X, 
+         change3_MAT = Y) %>%
+  mutate(semifor_l = mean(climate_land_abund_05_1000$semifor_l),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_05 <- glmmTMB(
+  abund_05 ~
+    scale(semifor_l) * scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_05_1000,
+  na.action = "na.fail"
+)
+
+plot_05_crop$abund_05 <- c(predict(
+  mod_05,
+  newdata = plot_05_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_05.3 <- ggplot() +
+  geom_raster(data = plot_05_crop,
+              aes(x = change3_VAT,
+                  y = change3_MAT,
+                  fill = abund_05)) +
+  geom_contour(
+    data = plot_05_crop,
+    aes(x = change3_VAT,
+        y = change3_MAT,
+        z = abund_05),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "VAT change (°C)",
+       y = "MAT change (°C)",
+    )
+heatmap_05.3
+```
+
+
+## 06. Diet specialist pollinators
+
+100 m:
+```{r}
+climate_land_abund_06_100 <-
+  climate_land_abund %>%
+  filter(Pollinator_study == 1) %>%
+  dplyr::select(
+    ts_poll_03_abund,
+    sampling_effort_scaled,
+    semifor_100,
+    change3_MAT,
+    change3_VAT,
+    present3_MAT,
+    present3_VAT,
+    StudyID_yr,
+    Sampling_method,
+    Block,
+    Latitude,
+    Longitude
+  ) %>%
+  ungroup() %>%
+  na.omit() %>%
+  mutate(
+    abund_06 = ts_poll_03_abund,
+    semifor_l = semifor_100
+  )
+```
+
+### heatmap_06.1
+
+```{r}
+plot_06_100_dat_hull <- climate_land_abund_06_100 %>%
+  slice(chull(semifor_l, change3_MAT))
+
+plot_06_100_dat_hull <- plot_06_100_dat_hull %>% dplyr::select(semifor_l, change3_MAT)
+
+plot_06_100_dat_hull_sf <- plot_06_100_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_06_100_dat_xy <-
+  with(climate_land_abund_06_100,
+       expand.grid(
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
+       ))
+
+plot_06_100_dat_xy_sf = st_as_sf(
+  plot_06_100_dat_xy,
+  coords = c("semifor_l", "change3_MAT"))
+
+plot_06_crop <-
+  st_intersection(
+    plot_06_100_dat_hull_sf,
+    plot_06_100_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semifor_l = X, 
+         change3_MAT = Y) %>%
+  mutate(change3_VAT = mean(climate_land_abund_06_100$change3_VAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_06 <- glmmTMB(
+  abund_06 ~
+    scale(semifor_l) * scale(change3_VAT) + scale(change3_MAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_06_100,
+  na.action = "na.fail"
+)
+
+plot_06_crop$abund_06 <- c(predict(
+  mod_06,
+  newdata = plot_06_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_06.1 <- ggplot() +
+  geom_raster(data = plot_06_crop,
+              aes(x = semifor_l,
+                  y = change3_MAT,
+                  fill = abund_06)) +
+  geom_contour(
+    data = plot_06_crop,
+    aes(x = semifor_l,
+        y = change3_MAT,
+        z = abund_06),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "nat.hab (%) in 0.25 km",
+       y = "MAT change (°C)",
+    )
+heatmap_06.1
+```
+
+### heatmap_06.2
+
+```{r}
+plot_06_100_dat_hull <- climate_land_abund_06_100 %>%
+  slice(chull(semifor_l, change3_VAT))
+
+plot_06_100_dat_hull <- plot_06_100_dat_hull %>% dplyr::select(semifor_l, change3_VAT)
+
+plot_06_100_dat_hull_sf <- plot_06_100_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_VAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_06_100_dat_xy <-
+  with(climate_land_abund_06_100,
+       expand.grid(
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300)
+       ))
+
+plot_06_100_dat_xy_sf = st_as_sf(
+  plot_06_100_dat_xy,
+  coords = c("semifor_l", "change3_VAT"))
+
+plot_06_crop <-
+  st_intersection(
+    plot_06_100_dat_hull_sf,
+    plot_06_100_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semifor_l = X, 
+         change3_VAT = Y) %>%
+  mutate(change3_MAT = mean(climate_land_abund_06_100$change3_MAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_06 <- glmmTMB(
+  abund_06 ~
+    scale(semifor_l) * scale(change3_VAT) + scale(change3_MAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_06_100,
+  na.action = "na.fail"
+)
+
+plot_06_crop$abund_06 <- c(predict(
+  mod_06,
+  newdata = plot_06_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_06.2 <- ggplot() +
+  geom_raster(data = plot_06_crop,
+              aes(x = semifor_l,
+                  y = change3_VAT,
+                  fill = abund_06)) +
+  geom_contour(
+    data = plot_06_crop,
+    aes(x = semifor_l,
+        y = change3_VAT,
+        z = abund_06),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 1
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "nat.hab (%) in 0.25 km",
+       y = "VAT change (°C)",
+    )
+heatmap_06.2
+```
+
+### heatmap_06.3
+
+```{r}
+plot_06_100_dat_hull <- climate_land_abund_06_100 %>%
+  slice(chull(change3_VAT, change3_MAT))
+
+plot_06_100_dat_hull <- plot_06_100_dat_hull %>% dplyr::select(change3_VAT, change3_MAT)
+
+plot_06_100_dat_hull_sf <- plot_06_100_dat_hull %>%
+  st_as_sf(coords = 
+             c("change3_VAT",
+               "change3_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_06_100_dat_xy <-
+  with(climate_land_abund_06_100,
+       expand.grid(
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
+       ))
+
+plot_06_100_dat_xy_sf = st_as_sf(
+  plot_06_100_dat_xy,
+  coords = c("change3_VAT", "change3_MAT"))
+
+plot_06_crop <-
+  st_intersection(
+    plot_06_100_dat_hull_sf,
+    plot_06_100_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(change3_VAT = X, 
+         change3_MAT = Y) %>%
+  mutate(semifor_l = mean(climate_land_abund_06_100$semifor_l),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_06 <- glmmTMB(
+  abund_06 ~
+    scale(semifor_l) * scale(change3_VAT) + scale(change3_MAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_06_100,
+  na.action = "na.fail"
+)
+
+plot_06_crop$abund_06 <- c(predict(
+  mod_06,
+  newdata = plot_06_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_06.3 <- ggplot() +
+  geom_raster(data = plot_06_crop,
+              aes(x = change3_VAT,
+                  y = change3_MAT,
+                  fill = abund_06)) +
+  geom_contour(
+    data = plot_06_crop,
+    aes(x = change3_VAT,
+        y = change3_MAT,
+        z = abund_06),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "VAT change (°C)",
+       y = "MAT change (°C)",
+    )
+heatmap_06.3
+```
+
+
+
+## 07. Habitat generalist pests
+
+500 m:
+```{r}
+climate_land_abund_07_500 <-
   climate_land_abund %>%
   filter(Pest_study == 1) %>%
   dplyr::select(
-    fg_pest_abund_scaled,
-    semi_500,
-    edge_500,
-    arable_500,
-    TAP,
-    MAT,
-    min_temp,
-    max_temp,
+    ts_pest_06_abund,
+    sampling_effort_scaled,
+    semifor_500,
+    change3_MAT,
+    change3_VAT,
+    present3_MAT,
+    present3_VAT,
     StudyID_yr,
     Sampling_method,
     Block,
@@ -1294,137 +2559,98 @@ climate_land_abund_03_500 <-
   ) %>%
   ungroup() %>%
   na.omit() %>%
-  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(edge_500, degree = 2, prefix = "edge_") %>%
-  poly_add_columns(arable_500, degree = 2, prefix = "arable_") %>%
-  poly_add_columns(TAP, degree = 2, prefix = "TAP_") %>%
-  poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
-  poly_add_columns(min_temp, degree = 2, prefix = "min_temp_") %>%
-  poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>%
   mutate(
-    fg_03_l = log1p(fg_pest_abund_scaled),
-    semi_1_l = log1p(semi_1),
-    semi_2_l = log1p(semi_2),
-    edge_1_l = log1p(edge_1),
-    edge_2_l = log1p(edge_2),
-    arable_1_l = log1p(arable_1),
-    arable_2_l = log1p(arable_2),
-    TAP_1_l = log1p(TAP_1),
-    TAP_2_l = log1p(TAP_2),
-    MAT_1_l = log1p(MAT_1),
-    MAT_2_l = log1p(MAT_2),
-    min_temp_1_l = log1p(min_temp_1),
-    min_temp_2_l = log1p(min_temp_2),
-    max_temp_1_l = log1p(max_temp_1),
-    max_temp_2_l = log1p(max_temp_2)
+    abund_07 = ts_pest_06_abund,
+    semifor_l = semifor_500
   )
 ```
 
-### heatmap_03
+### heatmap_07.1
 
 ```{r}
-climate_land_abund_03_500 <- climate_land_abund_03_500 %>%
-  mutate(
-    arable_500_l = log1p(arable_500),
-    MAT_l = log1p(MAT)
-  )
+plot_07_500_dat_hull <- climate_land_abund_07_500 %>%
+  slice(chull(semifor_l, change3_MAT))
 
-plot_03_500_dat_hull <- climate_land_abund_03_500 %>%
-  slice(chull(arable_500_l, MAT_l))
+plot_07_500_dat_hull <- plot_07_500_dat_hull %>% dplyr::select(semifor_l, change3_MAT)
 
-plot_03_500_dat_hull <- plot_03_500_dat_hull %>%
-  dplyr::select(arable_500_l, MAT_l)
-
-plot_03_500_dat_hull_sf <- plot_03_500_dat_hull %>%
-  st_as_sf(coords = c("arable_500_l", "MAT_l")) %>%
+plot_07_500_dat_hull_sf <- plot_07_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_MAT")) %>%
   summarise() %>%
   st_cast("POLYGON") %>%
   st_convex_hull()
 
-plot_03_500_dat_xy <-
-  with(climate_land_abund_03_500,
+plot_07_500_dat_xy <-
+  with(climate_land_abund_07_500,
        expand.grid(
-         arable_500_l = seq(min(arable_500_l),
-                        max(arable_500_l),
-                        len = 400),
-         MAT_l = seq(min(MAT_l),
-                        max(MAT_l),
-                        len = 400)
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
        ))
 
-plot_03_500_dat_xy_sf = st_as_sf(
-  plot_03_500_dat_xy,
-  coords = c("arable_500_l", "MAT_l"))
+plot_07_500_dat_xy_sf = st_as_sf(
+  plot_07_500_dat_xy,
+  coords = c("semifor_l", "change3_MAT"))
 
-plot_03_crop <-
+plot_07_crop <-
   st_intersection(
-    plot_03_500_dat_xy_sf,
-    plot_03_500_dat_hull_sf) %>%
+    plot_07_500_dat_hull_sf,
+    plot_07_500_dat_xy_sf) %>%
   st_coordinates() %>%
   as.data.frame() %>%
-  rename(arable_500_l = X, MAT_l = Y)
+  rename(semifor_l = X, 
+         change3_MAT = Y) %>%
+  mutate(change3_VAT = mean(climate_land_abund_07_500$change3_VAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
 
-plot_03_crop <- plot_03_crop %>%
-  mutate(
-    arable_500 = (expm1(arable_500_l)),
-    MAT = (expm1(MAT_l))
-  ) %>%
-  poly_add_columns(arable_500, degree = 2, prefix = "arable_") %>%
-  poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
-  mutate(
-    arable_1_l = log1p(arable_1),
-    arable_2_l = log1p(arable_2),
-    MAT_1_l = log1p(MAT_1),
-    MAT_2_l = log1p(MAT_2)
-  )
-
-mod_03 <- lmer(
-  fg_03_l ~
-    arable_1_l + MAT_1_l +
-    arable_2_l + MAT_2_l +
-    (1 | StudyID_yr) +
-    (1 | StudyID_yr:Sampling_method:Block),
-  data = climate_land_abund_03_500
+mod_07 <- glmmTMB(
+  abund_07 ~
+    scale(semifor_l) +  scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_07_500,
+  na.action = "na.fail"
 )
 
-plot_03_crop$fg_03_l <-
-  c(predict(mod_03, newdata = plot_03_crop, se = F, re.form = NA))
+plot_07_crop$abund_07 <- c(predict(
+  mod_07,
+  newdata = plot_07_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
 
-heatmap_03 <- ggplot() +
-  geom_raster(data = plot_03_crop,
-              aes(x = arable_500_l,
-                  y = MAT_l,
-                  fill = fg_03_l)) +
+heatmap_07.1 <- ggplot() +
+  geom_raster(data = plot_07_crop,
+              aes(x = semifor_l,
+                  y = change3_MAT,
+                  fill = abund_07)) +
   geom_contour(
-    data = plot_03_crop,
-    aes(x = arable_500_l,
-        y = MAT_l,
-        z = fg_03_l),
+    data = plot_07_crop,
+    aes(x = semifor_l,
+        y = change3_MAT,
+        z = abund_07),
     color = 'white',
-    alpha = 0.5
+    bins = 10,
+    alpha = 0.4
   ) +
   scale_fill_viridis_c(
     option = "plasma",
-    alpha = 1,
-    breaks = c(2.3, 2.6, 2.9, 3.2)
-    ) +
-  scale_y_continuous(
-    breaks = c(
-      log1p(7 + 273.15), 
-      log1p(10 + 273.15), 
-      log1p(13 + 273.15), 
-      log1p(16 + 273.15)),
-    labels = c(7, 10, 13, 16)
-    ) +
-  scale_x_continuous(
-    breaks = c(log1p(0), log1p(5), log1p(20), log1p(40), log1p(60), log1p(80)),
-    labels = c(0, 5, 20, 40, 60, 80)
+    alpha = 0.4
     ) +
   theme_classic() +
   theme(
     aspect.ratio = 1,
     # plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
+    axis.line = element_blank(),
     axis.title = element_text(size = 8),
     legend.text = element_text(size = 7),
     legend.position = "right",
@@ -1434,171 +2660,107 @@ heatmap_03 <- ggplot() +
     legend.box.spacing = unit(0.25, "pt"),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
     plot.margin = unit(c(0,0,0,0), "cm")
   ) +
   labs(
     fill = "Abundance",
-       x = "Arable (%) in 0.5 km",
-       y = "MAT (°C)")
-heatmap_03
+       x = "nat.hab (%) in 0.5 km",
+       y = "MAT change (°C)",
+    )
+heatmap_07.1
 ```
 
-## Diet specialist pollinators
-
-Data frame:
-```{r}
-climate_land_abund_06_500 <-
-  climate_land_abund %>%
-  filter(Pollinator_study == 1) %>%
-  dplyr::select(
-    ts_poll_spec_flight_noncrop_abund_scaled,
-    semi_500,
-    edge_500,
-    arable_500,
-    TAP,
-    MAT,
-    min_temp,
-    max_temp,
-    StudyID_yr,
-    Sampling_method,
-    Block,
-    Latitude,
-    Longitude
-  ) %>%
-  ungroup() %>%
-  na.omit() %>%
-  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(edge_500, degree = 2, prefix = "edge_") %>%
-  poly_add_columns(arable_500, degree = 2, prefix = "arable_") %>%
-  poly_add_columns(TAP, degree = 2, prefix = "TAP_") %>%
-  poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
-  poly_add_columns(min_temp, degree = 2, prefix = "min_temp_") %>%
-  poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>%
-  mutate(
-    ts_06_l = log1p(ts_poll_spec_flight_noncrop_abund_scaled),
-    semi_1_l = log1p(semi_1),
-    semi_2_l = log1p(semi_2),
-    edge_1_l = log1p(edge_1),
-    edge_2_l = log1p(edge_2),
-    arable_1_l = log1p(arable_1),
-    arable_2_l = log1p(arable_2),
-    TAP_1_l = log1p(TAP_1),
-    TAP_2_l = log1p(TAP_2),
-    MAT_1_l = log1p(MAT_1),
-    MAT_2_l = log1p(MAT_2),
-    min_temp_1_l = log1p(min_temp_1),
-    min_temp_2_l = log1p(min_temp_2),
-    max_temp_1_l = log1p(max_temp_1),
-    max_temp_2_l = log1p(max_temp_2)
-  )
-```
-
-### heatmap_06_a
+### heatmap_07.2
 
 ```{r}
-climate_land_abund_06_500 <- climate_land_abund_06_500 %>%
-  mutate(
-    semi_500_l = log1p(semi_500),
-    MAT_l = log1p(MAT)
-  )
+plot_07_500_dat_hull <- climate_land_abund_07_500 %>%
+  slice(chull(semifor_l, change3_VAT))
 
-plot_06_500_dat_hull <- climate_land_abund_06_500 %>%
-  slice(chull(semi_500_l, MAT_l))
+plot_07_500_dat_hull <- plot_07_500_dat_hull %>% dplyr::select(semifor_l, change3_VAT)
 
-plot_06_500_dat_hull <- plot_06_500_dat_hull %>%
-  dplyr::select(semi_500_l, MAT_l)
-
-plot_06_500_dat_hull_sf <- plot_06_500_dat_hull %>%
-  st_as_sf(coords = c("semi_500_l", "MAT_l")) %>%
+plot_07_500_dat_hull_sf <- plot_07_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_VAT")) %>%
   summarise() %>%
   st_cast("POLYGON") %>%
   st_convex_hull()
 
-plot_06_500_dat_xy <-
-  with(climate_land_abund_06_500,
+plot_07_500_dat_xy <-
+  with(climate_land_abund_07_500,
        expand.grid(
-         semi_500_l = seq(min(semi_500_l),
-                        max(semi_500_l),
-                        len = 400),
-         MAT_l = seq(min(MAT_l),
-                        max(MAT_l),
-                        len = 400)
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300)
        ))
 
-plot_06_500_dat_xy_sf = st_as_sf(
-  plot_06_500_dat_xy,
-  coords = c("semi_500_l", "MAT_l"))
+plot_07_500_dat_xy_sf = st_as_sf(
+  plot_07_500_dat_xy,
+  coords = c("semifor_l", "change3_VAT"))
 
-plot_06_crop <-
+plot_07_crop <-
   st_intersection(
-    plot_06_500_dat_xy_sf,
-    plot_06_500_dat_hull_sf) %>%
+    plot_07_500_dat_hull_sf,
+    plot_07_500_dat_xy_sf) %>%
   st_coordinates() %>%
   as.data.frame() %>%
-  rename(semi_500_l = X, MAT_l = Y)
+  rename(semifor_l = X, 
+         change3_VAT = Y) %>%
+  mutate(change3_MAT = mean(climate_land_abund_07_500$change3_MAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
 
-plot_06_crop <- plot_06_crop %>%
-  mutate(
-    semi_500 = (expm1(semi_500_l)),
-    MAT = (expm1(MAT_l))
-  ) %>%
-  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
-  mutate(
-    semi_1_l = log1p(semi_1),
-    semi_2_l = log1p(semi_2),
-    MAT_1_l = log1p(MAT_1),
-    MAT_2_l = log1p(MAT_2)
-  )
-
-mod_06 <- lmer(
-  ts_06_l ~
-    semi_1_l * MAT_1_l +
-    semi_1_l + MAT_1_l +
-    semi_2_l + MAT_2_l +
-    (1 | StudyID_yr) +
-    (1 | StudyID_yr:Sampling_method:Block),
-  data = climate_land_abund_06_500
+mod_07 <- glmmTMB(
+  abund_07 ~
+    scale(semifor_l) +  scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_07_500,
+  na.action = "na.fail"
 )
 
-plot_06_crop$ts_06_l <-
-  c(predict(mod_06, newdata = plot_06_crop, se = F, re.form = NA))
+plot_07_crop$abund_07 <- c(predict(
+  mod_07,
+  newdata = plot_07_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
 
-heatmap_06_a <- ggplot() +
-  geom_raster(data = plot_06_crop,
-              aes(x = semi_500_l,
-                  y = MAT_l,
-                  fill = ts_06_l)) +
+heatmap_07.2 <- ggplot() +
+  geom_raster(data = plot_07_crop,
+              aes(x = semifor_l,
+                  y = change3_VAT,
+                  fill = abund_07)) +
   geom_contour(
-    data = plot_06_crop,
-    aes(x = semi_500_l,
-        y = MAT_l,
-        z = ts_06_l),
+    data = plot_07_crop,
+    aes(x = semifor_l,
+        y = change3_VAT,
+        z = abund_07),
     color = 'white',
-    alpha = 0.5
+    bins = 10,
+    alpha = 0.4
   ) +
   scale_fill_viridis_c(
     option = "plasma",
-    alpha = 1,
-    breaks = c(0.6, 0.8, 1.0, 1.2)
-    ) +
-  scale_y_continuous(
-    breaks = c(
-      log1p(7 + 273.15), 
-      log1p(10 + 273.15), 
-      log1p(13 + 273.15), 
-      log1p(16 + 273.15)),
-    labels = c(7, 10, 13, 16)
-    ) +
-  scale_x_continuous(
-    breaks = c(log1p(0), log1p(2), log1p(10), log1p(30), log1p(80)),
-    labels = c(0, 2, 10, 30, 80)
+    alpha = 0.4
     ) +
   theme_classic() +
   theme(
     aspect.ratio = 1,
     # plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
+    axis.line = element_blank(),
     axis.title = element_text(size = 8),
     legend.text = element_text(size = 7),
     legend.position = "right",
@@ -1608,121 +2770,107 @@ heatmap_06_a <- ggplot() +
     legend.box.spacing = unit(0.25, "pt"),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
     plot.margin = unit(c(0,0,0,0), "cm")
   ) +
   labs(
     fill = "Abundance",
-       x = "SNH (%) in 0.5 km",
-       y = "MAT (°C)")
-heatmap_06_a
+       x = "nat.hab (%) in 0.5 km",
+       y = "VAT change (°C)",
+    )
+heatmap_07.2
 ```
 
-### heatmap_06_b
+### heatmap_07.3
 
 ```{r}
-climate_land_abund_06_500 <- climate_land_abund_06_500 %>%
-  mutate(
-    semi_500_l = log1p(semi_500),
-    max_temp_l = log1p(max_temp)
-  )
+plot_07_500_dat_hull <- climate_land_abund_07_500 %>%
+  slice(chull(change3_VAT, change3_MAT))
 
-plot_06_500_dat_hull <- climate_land_abund_06_500 %>%
-  slice(chull(semi_500_l, max_temp_l))
+plot_07_500_dat_hull <- plot_07_500_dat_hull %>% dplyr::select(change3_VAT, change3_MAT)
 
-plot_06_500_dat_hull <- plot_06_500_dat_hull %>%
-  dplyr::select(semi_500_l, max_temp_l)
-
-plot_06_500_dat_hull_sf <- plot_06_500_dat_hull %>%
-  st_as_sf(coords = c("semi_500_l", "max_temp_l")) %>%
+plot_07_500_dat_hull_sf <- plot_07_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("change3_VAT",
+               "change3_MAT")) %>%
   summarise() %>%
   st_cast("POLYGON") %>%
   st_convex_hull()
 
-plot_06_500_dat_xy <-
-  with(climate_land_abund_06_500,
+plot_07_500_dat_xy <-
+  with(climate_land_abund_07_500,
        expand.grid(
-         semi_500_l = seq(min(semi_500_l),
-                        max(semi_500_l),
-                        len = 400),
-         max_temp_l = seq(min(max_temp_l),
-                        max(max_temp_l),
-                        len = 400)
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
        ))
 
-plot_06_500_dat_xy_sf = st_as_sf(
-  plot_06_500_dat_xy,
-  coords = c("semi_500_l", "max_temp_l"))
+plot_07_500_dat_xy_sf = st_as_sf(
+  plot_07_500_dat_xy,
+  coords = c("change3_VAT", "change3_MAT"))
 
-plot_06_crop <-
+plot_07_crop <-
   st_intersection(
-    plot_06_500_dat_xy_sf,
-    plot_06_500_dat_hull_sf) %>%
+    plot_07_500_dat_hull_sf,
+    plot_07_500_dat_xy_sf) %>%
   st_coordinates() %>%
   as.data.frame() %>%
-  rename(semi_500_l = X, max_temp_l = Y)
+  rename(change3_VAT = X, 
+         change3_MAT = Y) %>%
+  mutate(semifor_l = mean(climate_land_abund_07_500$semifor_l),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
 
-plot_06_crop <- plot_06_crop %>%
-  mutate(
-    semi_500 = (expm1(semi_500_l)),
-    max_temp = (expm1(max_temp_l))
-  ) %>%
-  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>%
-  mutate(
-    semi_1_l = log1p(semi_1),
-    semi_2_l = log1p(semi_2),
-    max_temp_1_l = log1p(max_temp_1),
-    max_temp_2_l = log1p(max_temp_2)
-  )
-
-mod_06 <- lmer(
-  ts_06_l ~
-    semi_1_l * max_temp_1_l +
-    semi_1_l + max_temp_1_l +
-    semi_2_l + max_temp_2_l +
-    (1 | StudyID_yr) +
-    (1 | StudyID_yr:Sampling_method:Block),
-  data = climate_land_abund_06_500
+mod_07 <- glmmTMB(
+  abund_07 ~
+    scale(semifor_l) +  scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_07_500,
+  na.action = "na.fail"
 )
 
-plot_06_crop$ts_06_l <-
-  c(predict(mod_06, newdata = plot_06_crop, se = F, re.form = NA))
+plot_07_crop$abund_07 <- c(predict(
+  mod_07,
+  newdata = plot_07_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
 
-heatmap_06_b <- ggplot() +
-  geom_raster(data = plot_06_crop,
-              aes(x = semi_500_l,
-                  y = max_temp_l,
-                  fill = ts_06_l)) +
+heatmap_07.3 <- ggplot() +
+  geom_raster(data = plot_07_crop,
+              aes(x = change3_VAT,
+                  y = change3_MAT,
+                  fill = abund_07)) +
   geom_contour(
-    data = plot_06_crop,
-    aes(x = semi_500_l,
-        y = max_temp_l,
-        z = ts_06_l),
+    data = plot_07_crop,
+    aes(x = change3_VAT,
+        y = change3_MAT,
+        z = abund_07),
     color = 'white',
-    alpha = 0.5
+    bins = 10,
+    alpha = 0.4
   ) +
   scale_fill_viridis_c(
     option = "plasma",
-    alpha = 1,
-    breaks = c(0.6, 0.8, 1.0, 1.2)
-    ) +
-  scale_y_continuous(
-    breaks = c(
-      log1p(16 + 273.15),
-      log1p(20 + 273.15),
-      log1p(24 + 273.15),
-      log1p(28 + 273.15)),
-    labels = c(16, 20, 24, 28)
-    ) +
-  scale_x_continuous(
-    breaks = c(log1p(0), log1p(2), log1p(10), log1p(30), log1p(80)),
-    labels = c(0, 2, 10, 30, 80)
+    alpha = 0.4
     ) +
   theme_classic() +
   theme(
     aspect.ratio = 1,
     # plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
+    axis.line = element_blank(),
     axis.title = element_text(size = 8),
     legend.text = element_text(size = 7),
     legend.position = "right",
@@ -1732,31 +2880,38 @@ heatmap_06_b <- ggplot() +
     legend.box.spacing = unit(0.25, "pt"),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
     plot.margin = unit(c(0,0,0,0), "cm")
   ) +
   labs(
     fill = "Abundance",
-       x = "SNH (%) in 0.5 km",
-       y = "maxT (°C)")
-heatmap_06_b
+       x = "VAT change (°C)",
+       y = "MAT change (°C)",
+    )
+heatmap_07.3
 ```
 
-## Habitat specialist pests
 
-Data frame:
+
+## 08. Habitat specialist pests
+
+500 m:
 ```{r}
 climate_land_abund_08_500 <-
   climate_land_abund %>%
   filter(Pest_study == 1) %>%
   dplyr::select(
-    ts_pest_spec_flightwind_noncrop_abund_scaled,
-    semi_500,
-    edge_500,
-    arable_500,
-    TAP,
-    MAT,
-    min_temp,
-    max_temp,
+    ts_pest_05_abund,
+    sampling_effort_scaled,
+    semifor_500,
+    change3_MAT,
+    change3_VAT,
+    present3_MAT,
+    present3_VAT,
     StudyID_yr,
     Sampling_method,
     Block,
@@ -1765,49 +2920,24 @@ climate_land_abund_08_500 <-
   ) %>%
   ungroup() %>%
   na.omit() %>%
-  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(edge_500, degree = 2, prefix = "edge_") %>%
-  poly_add_columns(arable_500, degree = 2, prefix = "arable_") %>%
-  poly_add_columns(TAP, degree = 2, prefix = "TAP_") %>%
-  poly_add_columns(MAT, degree = 2, prefix = "MAT_") %>%
-  poly_add_columns(min_temp, degree = 2, prefix = "min_temp_") %>%
-  poly_add_columns(max_temp, degree = 2, prefix = "max_temp_") %>%
   mutate(
-    ts_08_l = log1p(ts_pest_spec_flightwind_noncrop_abund_scaled),
-    semi_1_l = log1p(semi_1),
-    semi_2_l = log1p(semi_2),
-    edge_1_l = log1p(edge_1),
-    edge_2_l = log1p(edge_2),
-    arable_1_l = log1p(arable_1),
-    arable_2_l = log1p(arable_2),
-    TAP_1_l = log1p(TAP_1),
-    TAP_2_l = log1p(TAP_2),
-    MAT_1_l = log1p(MAT_1),
-    MAT_2_l = log1p(MAT_2),
-    min_temp_1_l = log1p(min_temp_1),
-    min_temp_2_l = log1p(min_temp_2),
-    max_temp_1_l = log1p(max_temp_1),
-    max_temp_2_l = log1p(max_temp_2)
+    abund_08 = ts_pest_05_abund,
+    semifor_l = semifor_500
   )
 ```
 
-### heatmap_08
+### heatmap_08.1
 
 ```{r}
-climate_land_abund_08_500 <- climate_land_abund_08_500 %>%
-  mutate(
-    semi_500_l = log1p(semi_500),
-    min_temp_l = log1p(min_temp)
-  )
-
 plot_08_500_dat_hull <- climate_land_abund_08_500 %>%
-  slice(chull(semi_500_l, min_temp_l))
+  slice(chull(semifor_l, change3_MAT))
 
-plot_08_500_dat_hull <- plot_08_500_dat_hull %>%
-  dplyr::select(semi_500_l, min_temp_l)
+plot_08_500_dat_hull <- plot_08_500_dat_hull %>% dplyr::select(semifor_l, change3_MAT)
 
 plot_08_500_dat_hull_sf <- plot_08_500_dat_hull %>%
-  st_as_sf(coords = c("semi_500_l", "min_temp_l")) %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_MAT")) %>%
   summarise() %>%
   st_cast("POLYGON") %>%
   st_convex_hull()
@@ -1815,88 +2945,73 @@ plot_08_500_dat_hull_sf <- plot_08_500_dat_hull %>%
 plot_08_500_dat_xy <-
   with(climate_land_abund_08_500,
        expand.grid(
-         semi_500_l = seq(min(semi_500_l),
-                        max(semi_500_l),
-                        len = 400),
-         min_temp_l = seq(min(min_temp_l),
-                        max(min_temp_l),
-                        len = 400)
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
        ))
 
 plot_08_500_dat_xy_sf = st_as_sf(
   plot_08_500_dat_xy,
-  coords = c("semi_500_l", "min_temp_l"))
+  coords = c("semifor_l", "change3_MAT"))
 
 plot_08_crop <-
   st_intersection(
-    plot_08_500_dat_xy_sf,
-    plot_08_500_dat_hull_sf) %>%
+    plot_08_500_dat_hull_sf,
+    plot_08_500_dat_xy_sf) %>%
   st_coordinates() %>%
   as.data.frame() %>%
-  rename(semi_500_l = X, min_temp_l = Y)
+  rename(semifor_l = X, 
+         change3_MAT = Y) %>%
+  mutate(change3_VAT = mean(climate_land_abund_08_500$change3_VAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
 
-plot_08_crop <- plot_08_crop %>%
-  mutate(
-    semi_500 = (expm1(semi_500_l)),
-    min_temp = (expm1(min_temp_l))
-  ) %>%
-  poly_add_columns(semi_500, degree = 2, prefix = "semi_") %>%
-  poly_add_columns(min_temp, degree = 2, prefix = "min_temp_") %>%
-  mutate(
-    semi_1_l = log1p(semi_1),
-    semi_2_l = log1p(semi_2),
-    min_temp_1_l = log1p(min_temp_1),
-    min_temp_2_l = log1p(min_temp_2)
-  )
-
-mod_08 <- lmer(
-  ts_08_l ~
-    semi_1_l * min_temp_2_l +
-    semi_1_l + min_temp_1_l +
-    semi_2_l + min_temp_2_l +
-    (1 | StudyID_yr) +
-    (1 | StudyID_yr:Sampling_method:Block),
-  data = climate_land_abund_08_500
+mod_08 <- glmmTMB(
+  abund_08 ~
+    scale(semifor_l) + scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_08_500,
+  na.action = "na.fail"
 )
 
-plot_08_crop$ts_08_l <-
-  c(predict(mod_08, newdata = plot_08_crop, se = F, re.form = NA))
+plot_08_crop$abund_08 <- c(predict(
+  mod_08,
+  newdata = plot_08_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
 
-heatmap_08 <- ggplot() +
+heatmap_08.1 <- ggplot() +
   geom_raster(data = plot_08_crop,
-              aes(x = semi_500_l,
-                  y = min_temp_l,
-                  fill = ts_08_l)) +
+              aes(x = semifor_l,
+                  y = change3_MAT,
+                  fill = abund_08)) +
   geom_contour(
     data = plot_08_crop,
-    aes(x = semi_500_l,
-        y = min_temp_l,
-        z = ts_08_l),
+    aes(x = semifor_l,
+        y = change3_MAT,
+        z = abund_08),
     color = 'white',
-    alpha = 0.5
+    bins = 10,
+    alpha = 0.4
   ) +
   scale_fill_viridis_c(
     option = "plasma",
-    alpha = 1,
-    breaks = c(1.0, 1.5, 2.0)
-    ) +
-  scale_y_continuous(
-    breaks = c(
-      log1p(-3 + 273.15),
-      log1p(0 + 273.15),
-      log1p(3 + 273.15),
-      log1p(6 + 273.15)),
-    labels = c(-3, 0, 3, 6)
-  ) +
-  scale_x_continuous(
-    breaks = c(log1p(0), log1p(2), log1p(10), log1p(30), log1p(80)),
-    labels = c(0, 2, 10, 30, 80)
+    alpha = 0.4
     ) +
   theme_classic() +
   theme(
     aspect.ratio = 1,
     # plot.title = element_text(size = 8),
     axis.text = element_text(size = 7),
+    axis.line = element_blank(),
     axis.title = element_text(size = 8),
     legend.text = element_text(size = 7),
     legend.position = "right",
@@ -1906,69 +3021,1320 @@ heatmap_08 <- ggplot() +
     legend.box.spacing = unit(0.25, "pt"),
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
     plot.margin = unit(c(0,0,0,0), "cm")
   ) +
   labs(
     fill = "Abundance",
-       x = "SNH (%) in 0.5 km",
-       y = "minT (°C)")
-heatmap_08
+       x = "nat.hab (%) in 0.5 km",
+       y = "MAT change (°C)",
+    )
+heatmap_08.1
+```
+
+### heatmap_08.2
+
+```{r}
+plot_08_500_dat_hull <- climate_land_abund_08_500 %>%
+  slice(chull(semifor_l, change3_VAT))
+
+plot_08_500_dat_hull <- plot_08_500_dat_hull %>% dplyr::select(semifor_l, change3_VAT)
+
+plot_08_500_dat_hull_sf <- plot_08_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_VAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_08_500_dat_xy <-
+  with(climate_land_abund_08_500,
+       expand.grid(
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300)
+       ))
+
+plot_08_500_dat_xy_sf = st_as_sf(
+  plot_08_500_dat_xy,
+  coords = c("semifor_l", "change3_VAT"))
+
+plot_08_crop <-
+  st_intersection(
+    plot_08_500_dat_hull_sf,
+    plot_08_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semifor_l = X, 
+         change3_VAT = Y) %>%
+  mutate(change3_MAT = mean(climate_land_abund_08_500$change3_MAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_08 <- glmmTMB(
+  abund_08 ~
+    scale(semifor_l) + scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_08_500,
+  na.action = "na.fail"
+)
+
+plot_08_crop$abund_08 <- c(predict(
+  mod_08,
+  newdata = plot_08_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_08.2 <- ggplot() +
+  geom_raster(data = plot_08_crop,
+              aes(x = semifor_l,
+                  y = change3_VAT,
+                  fill = abund_08)) +
+  geom_contour(
+    data = plot_08_crop,
+    aes(x = semifor_l,
+        y = change3_VAT,
+        z = abund_08),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "nat.hab (%) in 0.5 km",
+       y = "VAT change (°C)",
+    )
+heatmap_08.2
+```
+
+### heatmap_08.3
+
+```{r}
+plot_08_500_dat_hull <- climate_land_abund_08_500 %>%
+  slice(chull(change3_VAT, change3_MAT))
+
+plot_08_500_dat_hull <- plot_08_500_dat_hull %>% dplyr::select(change3_VAT, change3_MAT)
+
+plot_08_500_dat_hull_sf <- plot_08_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("change3_VAT",
+               "change3_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_08_500_dat_xy <-
+  with(climate_land_abund_08_500,
+       expand.grid(
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
+       ))
+
+plot_08_500_dat_xy_sf = st_as_sf(
+  plot_08_500_dat_xy,
+  coords = c("change3_VAT", "change3_MAT"))
+
+plot_08_crop <-
+  st_intersection(
+    plot_08_500_dat_hull_sf,
+    plot_08_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(change3_VAT = X, 
+         change3_MAT = Y) %>%
+  mutate(semifor_l = mean(climate_land_abund_08_500$semifor_l),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_08 <- glmmTMB(
+  abund_08 ~
+    scale(semifor_l) + scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_08_500,
+  na.action = "na.fail"
+)
+
+plot_08_crop$abund_08 <- c(predict(
+  mod_08,
+  newdata = plot_08_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_08.3 <- ggplot() +
+  geom_raster(data = plot_08_crop,
+              aes(x = change3_VAT,
+                  y = change3_MAT,
+                  fill = abund_08)) +
+  geom_contour(
+    data = plot_08_crop,
+    aes(x = change3_VAT,
+        y = change3_MAT,
+        z = abund_08),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "VAT change (°C)",
+       y = "MAT change (°C)",
+    )
+heatmap_08.3
 ```
 
 
-# Figure S1
 
+## 09. Habitat generalist, flight natural enemies
+
+500 m:
 ```{r}
-climate_land_abund_cor1_dat <- climate_land_abund %>%
-  select(
-    semi_100,
-    semi_250,
-    semi_500,
-    semi_1000,
-    semi_2000,
-    semi_3000,
-    edge_100,
-    edge_250,
-    edge_500,
-    edge_1000,
-    edge_2000,
-    edge_3000,
-    arable_100,
-    arable_250,
-    arable_500,
-    arable_1000,
-    arable_2000,
-    arable_3000
+climate_land_abund_09_500 <-
+  climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  dplyr::select(
+    ts_nat_enemy_02_abund,
+    sampling_effort_scaled,
+    semifor_500,
+    change3_MAT,
+    change3_VAT,
+    present3_MAT,
+    present3_VAT,
+    StudyID_yr,
+    Sampling_method,
+    Block,
+    Latitude,
+    Longitude
   ) %>%
-  na.omit()
-```
-
-```{r}
-cor_1 <- cor(climate_land_abund_cor1_dat)
-cor_1
-library(corrplot)
-corrplot(cor_1)
-```
-
-
-# Figure S2
-
-```{r}
-climate_land_abund_cor2_dat <- climate_land_abund %>%
-  select(
-    min_precip,
-    max_precip,
-    TAP,
-    min_temp,
-    max_temp,
-    MAT
+  ungroup() %>%
+  na.omit() %>%
+  mutate(
+    abund_09 = ts_nat_enemy_02_abund,
+    semifor_l = semifor_500
   )
-
-cor_2 <- cor(climate_land_abund_cor2_dat)
-cor_2
-library(corrplot)
-corrplot(cor_2)
 ```
 
+### heatmap_09.1
+
+```{r}
+plot_09_500_dat_hull <- climate_land_abund_09_500 %>%
+  slice(chull(semifor_l, change3_MAT))
+
+plot_09_500_dat_hull <- plot_09_500_dat_hull %>% dplyr::select(semifor_l, change3_MAT)
+
+plot_09_500_dat_hull_sf <- plot_09_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_09_500_dat_xy <-
+  with(climate_land_abund_09_500,
+       expand.grid(
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
+       ))
+
+plot_09_500_dat_xy_sf = st_as_sf(
+  plot_09_500_dat_xy,
+  coords = c("semifor_l", "change3_MAT"))
+
+plot_09_crop <-
+  st_intersection(
+    plot_09_500_dat_hull_sf,
+    plot_09_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semifor_l = X, 
+         change3_MAT = Y) %>%
+  mutate(change3_VAT = mean(climate_land_abund_09_500$change3_VAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_09 <- glmmTMB(
+  abund_09 ~
+    scale(semifor_l) + scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_09_500,
+  na.action = "na.fail"
+)
+
+plot_09_crop$abund_09 <- c(predict(
+  mod_09,
+  newdata = plot_09_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_09.1 <- ggplot() +
+  geom_raster(data = plot_09_crop,
+              aes(x = semifor_l,
+                  y = change3_MAT,
+                  fill = abund_09)) +
+  geom_contour(
+    data = plot_09_crop,
+    aes(x = semifor_l,
+        y = change3_MAT,
+        z = abund_09),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "nat.hab (%) in 0.5 km",
+       y = "MAT change (°C)",
+    )
+heatmap_09.1
+```
+
+### heatmap_09.2
+
+```{r}
+plot_09_500_dat_hull <- climate_land_abund_09_500 %>%
+  slice(chull(semifor_l, change3_VAT))
+
+plot_09_500_dat_hull <- plot_09_500_dat_hull %>% dplyr::select(semifor_l, change3_VAT)
+
+plot_09_500_dat_hull_sf <- plot_09_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_VAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_09_500_dat_xy <-
+  with(climate_land_abund_09_500,
+       expand.grid(
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300)
+       ))
+
+plot_09_500_dat_xy_sf = st_as_sf(
+  plot_09_500_dat_xy,
+  coords = c("semifor_l", "change3_VAT"))
+
+plot_09_crop <-
+  st_intersection(
+    plot_09_500_dat_hull_sf,
+    plot_09_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semifor_l = X, 
+         change3_VAT = Y) %>%
+  mutate(change3_MAT = mean(climate_land_abund_09_500$change3_MAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_09 <- glmmTMB(
+  abund_09 ~
+    scale(semifor_l) + scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_09_500,
+  na.action = "na.fail"
+)
+
+plot_09_crop$abund_09 <- c(predict(
+  mod_09,
+  newdata = plot_09_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_09.2 <- ggplot() +
+  geom_raster(data = plot_09_crop,
+              aes(x = semifor_l,
+                  y = change3_VAT,
+                  fill = abund_09)) +
+  geom_contour(
+    data = plot_09_crop,
+    aes(x = semifor_l,
+        y = change3_VAT,
+        z = abund_09),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "nat.hab (%) in 0.5 km",
+       y = "VAT change (°C)",
+    )
+heatmap_09.2
+```
+
+### heatmap_09.3
+
+```{r}
+plot_09_500_dat_hull <- climate_land_abund_09_500 %>%
+  slice(chull(change3_VAT, change3_MAT))
+
+plot_09_500_dat_hull <- plot_09_500_dat_hull %>% dplyr::select(change3_VAT, change3_MAT)
+
+plot_09_500_dat_hull_sf <- plot_09_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("change3_VAT",
+               "change3_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_09_500_dat_xy <-
+  with(climate_land_abund_09_500,
+       expand.grid(
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
+       ))
+
+plot_09_500_dat_xy_sf = st_as_sf(
+  plot_09_500_dat_xy,
+  coords = c("change3_VAT", "change3_MAT"))
+
+plot_09_crop <-
+  st_intersection(
+    plot_09_500_dat_hull_sf,
+    plot_09_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(change3_VAT = X, 
+         change3_MAT = Y) %>%
+  mutate(semifor_l = mean(climate_land_abund_09_500$semifor_l),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_09 <- glmmTMB(
+  abund_09 ~
+    scale(semifor_l) + scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_09_500,
+  na.action = "na.fail"
+)
+
+plot_09_crop$abund_09 <- c(predict(
+  mod_09,
+  newdata = plot_09_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_09.3 <- ggplot() +
+  geom_raster(data = plot_09_crop,
+              aes(x = change3_VAT,
+                  y = change3_MAT,
+                  fill = abund_09)) +
+  geom_contour(
+    data = plot_09_crop,
+    aes(x = change3_VAT,
+        y = change3_MAT,
+        z = abund_09),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "VAT change (°C)",
+       y = "MAT change (°C)",
+    )
+heatmap_09.3
+```
+
+
+
+
+## 10. Habitat specialist, ground natural enemies
+
+500 m:
+```{r}
+climate_land_abund_10_500 <-
+  climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  dplyr::select(
+    ts_nat_enemy_03_abund,
+    sampling_effort_scaled,
+    semifor_500,
+    change3_MAT,
+    change3_VAT,
+    present3_MAT,
+    present3_VAT,
+    StudyID_yr,
+    Sampling_method,
+    Block,
+    Latitude,
+    Longitude
+  ) %>%
+  ungroup() %>%
+  na.omit() %>%
+  mutate(
+    abund_10 = ts_nat_enemy_03_abund,
+    semifor_l = semifor_500
+  )
+```
+
+### heatmap_10.1
+
+```{r}
+plot_10_500_dat_hull <- climate_land_abund_10_500 %>%
+  slice(chull(semifor_l, change3_MAT))
+
+plot_10_500_dat_hull <- plot_10_500_dat_hull %>% dplyr::select(semifor_l, change3_MAT)
+
+plot_10_500_dat_hull_sf <- plot_10_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_10_500_dat_xy <-
+  with(climate_land_abund_10_500,
+       expand.grid(
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
+       ))
+
+plot_10_500_dat_xy_sf = st_as_sf(
+  plot_10_500_dat_xy,
+  coords = c("semifor_l", "change3_MAT"))
+
+plot_10_crop <-
+  st_intersection(
+    plot_10_500_dat_hull_sf,
+    plot_10_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semifor_l = X, 
+         change3_MAT = Y) %>%
+  mutate(change3_VAT = mean(climate_land_abund_10_500$change3_VAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_10 <- glmmTMB(
+  abund_10 ~
+    scale(semifor_l) + scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_10_500,
+  na.action = "na.fail"
+)
+
+plot_10_crop$abund_10 <- c(predict(
+  mod_10,
+  newdata = plot_10_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_10.1 <- ggplot() +
+  geom_raster(data = plot_10_crop,
+              aes(x = semifor_l,
+                  y = change3_MAT,
+                  fill = abund_10)) +
+  geom_contour(
+    data = plot_10_crop,
+    aes(x = semifor_l,
+        y = change3_MAT,
+        z = abund_10),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "nat.hab (%) in 0.5 km",
+       y = "MAT change (°C)",
+    )
+heatmap_10.1
+```
+
+### heatmap_10.2
+
+```{r}
+plot_10_500_dat_hull <- climate_land_abund_10_500 %>%
+  slice(chull(semifor_l, change3_VAT))
+
+plot_10_500_dat_hull <- plot_10_500_dat_hull %>% dplyr::select(semifor_l, change3_VAT)
+
+plot_10_500_dat_hull_sf <- plot_10_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_VAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_10_500_dat_xy <-
+  with(climate_land_abund_10_500,
+       expand.grid(
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300)
+       ))
+
+plot_10_500_dat_xy_sf = st_as_sf(
+  plot_10_500_dat_xy,
+  coords = c("semifor_l", "change3_VAT"))
+
+plot_10_crop <-
+  st_intersection(
+    plot_10_500_dat_hull_sf,
+    plot_10_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semifor_l = X, 
+         change3_VAT = Y) %>%
+  mutate(change3_MAT = mean(climate_land_abund_10_500$change3_MAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_10 <- glmmTMB(
+  abund_10 ~
+    scale(semifor_l) + scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_10_500,
+  na.action = "na.fail"
+)
+
+plot_10_crop$abund_10 <- c(predict(
+  mod_10,
+  newdata = plot_10_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_10.2 <- ggplot() +
+  geom_raster(data = plot_10_crop,
+              aes(x = semifor_l,
+                  y = change3_VAT,
+                  fill = abund_10), alpha = 0.4) +
+  geom_contour(
+    data = plot_10_crop,
+    aes(x = semifor_l,
+        y = change3_VAT,
+        z = abund_10),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 1
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "nat.hab (%) in 0.5 km",
+       y = "VAT change (°C)",
+    )
+heatmap_10.2
+```
+
+### heatmap_10.3
+
+```{r}
+plot_10_500_dat_hull <- climate_land_abund_10_500 %>%
+  slice(chull(change3_VAT, change3_MAT))
+
+plot_10_500_dat_hull <- plot_10_500_dat_hull %>% dplyr::select(change3_VAT, change3_MAT)
+
+plot_10_500_dat_hull_sf <- plot_10_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("change3_VAT",
+               "change3_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_10_500_dat_xy <-
+  with(climate_land_abund_10_500,
+       expand.grid(
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
+       ))
+
+plot_10_500_dat_xy_sf = st_as_sf(
+  plot_10_500_dat_xy,
+  coords = c("change3_VAT", "change3_MAT"))
+
+plot_10_crop <-
+  st_intersection(
+    plot_10_500_dat_hull_sf,
+    plot_10_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(change3_VAT = X, 
+         change3_MAT = Y) %>%
+  mutate(semifor_l = mean(climate_land_abund_10_500$semifor_l),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_10 <- glmmTMB(
+  abund_10 ~
+    scale(semifor_l) + scale(change3_MAT) + scale(change3_VAT) + (1 | StudyID_yr) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_10_500,
+  na.action = "na.fail"
+)
+
+plot_10_crop$abund_10 <- c(predict(
+  mod_10,
+  newdata = plot_10_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_10.3 <- ggplot() +
+  geom_raster(data = plot_10_crop,
+              aes(x = change3_VAT,
+                  y = change3_MAT,
+                  fill = abund_10)) +
+  geom_contour(
+    data = plot_10_crop,
+    aes(x = change3_VAT,
+        y = change3_MAT,
+        z = abund_10),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 1
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "VAT change (°C)",
+       y = "MAT change (°C)",
+    )
+heatmap_10.3
+```
+
+## 11. Habitat generalist, ground natural enemies
+
+500 m:
+```{r}
+climate_land_abund_11_500 <-
+  climate_land_abund %>%
+  filter(Nat_enemy_study == 1) %>%
+  dplyr::select(
+    ts_nat_enemy_04_abund,
+    sampling_effort_scaled,
+    semifor_500,
+    change3_MAT,
+    change3_VAT,
+    present3_MAT,
+    present3_VAT,
+    StudyID_yr,
+    Sampling_method,
+    Block,
+    Latitude,
+    Longitude
+  ) %>%
+  ungroup() %>%
+  na.omit() %>%
+  mutate(
+    abund_11 = ts_nat_enemy_04_abund,
+    semifor_l = semifor_500
+  )
+```
+
+### heatmap_11.1
+```{r}
+plot_11_500_dat_hull <- climate_land_abund_11_500 %>%
+  slice(chull(semifor_l, change3_MAT))
+
+plot_11_500_dat_hull <- plot_11_500_dat_hull %>% dplyr::select(semifor_l, change3_MAT)
+
+plot_11_500_dat_hull_sf <- plot_11_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_11_500_dat_xy <-
+  with(climate_land_abund_11_500,
+       expand.grid(
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
+       ))
+
+plot_11_500_dat_xy_sf = st_as_sf(
+  plot_11_500_dat_xy,
+  coords = c("semifor_l", "change3_MAT"))
+
+plot_11_crop <-
+  st_intersection(
+    plot_11_500_dat_hull_sf,
+    plot_11_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semifor_l = X, 
+         change3_MAT = Y) %>%
+  mutate(change3_VAT = mean(climate_land_abund_11_500$change3_VAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_11 <- glmmTMB(
+  abund_11 ~
+    scale(semifor_l) * scale(change3_VAT) + scale(change3_MAT) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_11_500,
+  na.action = "na.fail"
+)
+
+plot_11_crop$abund_11 <- c(predict(
+  mod_11,
+  newdata = plot_11_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_11.1 <- ggplot() +
+  geom_raster(data = plot_11_crop,
+              aes(x = semifor_l,
+                  y = change3_MAT,
+                  fill = abund_11)) +
+  geom_contour(
+    data = plot_11_crop,
+    aes(x = semifor_l,
+        y = change3_MAT,
+        z = abund_11),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.title = element_text(size = 8),
+    axis.line = element_blank(),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "nat.hab (%) in 0.5 km",
+       y = "MAT change (°C)",
+    )
+heatmap_11.1
+```
+
+### heatmap_11.2
+
+```{r}
+plot_11_500_dat_hull <- climate_land_abund_11_500 %>%
+  slice(chull(semifor_l, change3_VAT))
+
+plot_11_500_dat_hull <- plot_11_500_dat_hull %>% dplyr::select(semifor_l, change3_VAT)
+
+plot_11_500_dat_hull_sf <- plot_11_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("semifor_l",
+               "change3_VAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_11_500_dat_xy <-
+  with(climate_land_abund_11_500,
+       expand.grid(
+         semifor_l = seq(min(semifor_l),
+                        max(semifor_l),
+                        len = 300),
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300)
+       ))
+
+plot_11_500_dat_xy_sf = st_as_sf(
+  plot_11_500_dat_xy,
+  coords = c("semifor_l", "change3_VAT"))
+
+plot_11_crop <-
+  st_intersection(
+    plot_11_500_dat_hull_sf,
+    plot_11_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(semifor_l = X, 
+         change3_VAT = Y) %>%
+  mutate(change3_MAT = mean(climate_land_abund_11_500$change3_MAT),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_11 <- glmmTMB(
+  abund_11 ~
+    scale(semifor_l) * scale(change3_VAT) + scale(change3_MAT) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_11_500,
+  na.action = "na.fail"
+)
+
+plot_11_crop$abund_11 <- c(predict(
+  mod_11,
+  newdata = plot_11_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_11.2 <- ggplot() +
+  geom_raster(data = plot_11_crop,
+              aes(x = semifor_l,
+                  y = change3_VAT,
+                  fill = abund_11)) +
+  geom_contour(
+    data = plot_11_crop,
+    aes(x = semifor_l,
+        y = change3_VAT,
+        z = abund_11),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 1
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.title = element_text(size = 8),
+    axis.line = element_blank(),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "nat.hab (%) in 0.5 km",
+       y = "VAT change (°C)",
+    )
+heatmap_11.2
+```
+
+### heatmap_11.3
+
+```{r}
+plot_11_500_dat_hull <- climate_land_abund_11_500 %>%
+  slice(chull(change3_VAT, change3_MAT))
+
+plot_11_500_dat_hull <- plot_11_500_dat_hull %>% dplyr::select(change3_VAT, change3_MAT)
+
+plot_11_500_dat_hull_sf <- plot_11_500_dat_hull %>%
+  st_as_sf(coords = 
+             c("change3_VAT",
+               "change3_MAT")) %>%
+  summarise() %>%
+  st_cast("POLYGON") %>%
+  st_convex_hull()
+
+plot_11_500_dat_xy <-
+  with(climate_land_abund_11_500,
+       expand.grid(
+         change3_VAT = seq(min(change3_VAT),
+                        max(change3_VAT),
+                        len = 300),
+         change3_MAT = seq(min(change3_MAT),
+                        max(change3_MAT),
+                        len = 300)
+       ))
+
+plot_11_500_dat_xy_sf = st_as_sf(
+  plot_11_500_dat_xy,
+  coords = c("change3_VAT", "change3_MAT"))
+
+plot_11_crop <-
+  st_intersection(
+    plot_11_500_dat_hull_sf,
+    plot_11_500_dat_xy_sf) %>%
+  st_coordinates() %>%
+  as.data.frame() %>%
+  rename(change3_VAT = X, 
+         change3_MAT = Y) %>%
+  mutate(semifor_l = mean(climate_land_abund_11_500$semifor_l),
+         StudyID_yr = NA,
+         Sampling_method = NA,
+         sampling_effort_scaled = 1)
+
+mod_11 <- glmmTMB(
+  abund_11 ~
+    scale(semifor_l) * scale(change3_VAT) + scale(change3_MAT) + (1 | StudyID_yr:Sampling_method) + offset(log(sampling_effort_scaled)),
+  family = ziGamma(link = "log"),
+  ziformula = ~ 1,
+  data = climate_land_abund_11_500,
+  na.action = "na.fail"
+)
+
+plot_11_crop$abund_11 <- c(predict(
+  mod_11,
+  newdata = plot_11_crop,
+  re.form = NA,
+  type = "response",
+  allow.new.levels = T,
+  na.action = "na.pass"
+))
+
+heatmap_11.3 <- ggplot() +
+  geom_raster(data = plot_11_crop,
+              aes(x = change3_VAT,
+                  y = change3_MAT,
+                  fill = abund_11)) +
+  geom_contour(
+    data = plot_11_crop,
+    aes(x = change3_VAT,
+        y = change3_MAT,
+        z = abund_11),
+    color = 'white',
+    bins = 10,
+    alpha = 0.4
+  ) +
+  scale_fill_viridis_c(
+    option = "plasma",
+    alpha = 0.4
+    ) +
+  theme_classic() +
+  theme(
+    aspect.ratio = 1,
+    # plot.title = element_text(size = 8),
+    axis.text = element_text(size = 7),
+    axis.line = element_blank(),
+    axis.title = element_text(size = 8),
+    legend.text = element_text(size = 7),
+    legend.position = "right",
+    legend.title = element_blank(),
+    legend.key.width = unit(0.25, "cm"),
+    legend.key.height = unit(0.25, "cm"),
+    legend.box.spacing = unit(0.25, "pt"),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    panel.border = element_rect(
+      colour = "black",
+      linewidth = 1,
+      fill = NA),
+    plot.title = element_text(size = 8),
+    plot.margin = unit(c(0,0,0,0), "cm")
+  ) +
+  labs(
+    fill = "Abundance",
+       x = "VAT change (°C)",
+       y = "MAT change (°C)",
+    )
+heatmap_11.3
+```
 
 

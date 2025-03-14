@@ -10,20 +10,28 @@ Open files:
 ```{r}
 site_dat = read.csv("~/Desktop/clim_land_arthropods/Site_Data.csv",
                     header = TRUE)
-precip_01 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2001", header = F)
-precip_02 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2002", header = F)
-precip_03 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2003", header = F)
-precip_04 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2004", header = F)
-precip_05 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2005", header = F)
-precip_06 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2006", header = F)
-precip_07 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2007", header = F)
-precip_08 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2008", header = F)
-precip_09 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2009", header = F)
-precip_10 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2010", header = F)
-precip_11 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2011", header = F)
-precip_12 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2012", header = F)
-precip_13 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2013", header = F)
-precip_14 = read.table("~/Desktop/clim_land_arthropods/precip_2014/precip.2014", header = F)
+temp_61 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1961", header = F)
+temp_62 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1962", header = F)
+temp_63 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1963", header = F)
+temp_64 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1964", header = F)
+temp_65 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1965", header = F)
+temp_66 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1966", header = F)
+temp_67 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1967", header = F)
+temp_68 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1968", header = F)
+temp_69 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1969", header = F)
+temp_70 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1970", header = F)
+temp_71 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1971", header = F)
+temp_72 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1972", header = F)
+temp_73 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1973", header = F)
+temp_74 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1974", header = F)
+temp_75 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1975", header = F)
+temp_76 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1976", header = F)
+temp_77 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1977", header = F)
+temp_78 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1978", header = F)
+temp_79 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1979", header = F)
+temp_80 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1980", header = F)
+temp_99 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.1999", header = F)
+temp_00 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.2000", header = F)
 temp_01 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.2001", header = F)
 temp_02 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.2002", header = F)
 temp_03 = read.table("~/Desktop/clim_land_arthropods/air_temp_2014/air_temp.2003", header = F)
@@ -48,506 +56,137 @@ library(sf)
 
 # Data cleaning
 
+Create list of data frames:
 ```{r}
-precip_01 <-
-  precip_01 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_02 <-
-  precip_02 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_03 <-
-  precip_03 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_04 <-
-  precip_04 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_05 <-
-  precip_05 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_06 <-
-  precip_06 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_07 <-
-  precip_07 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_08 <-
-  precip_08 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_09 <-
-  precip_09 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_10 <-
-  precip_10 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_11 <-
-  precip_11 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_12 <-
-  precip_12 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_13 <-
-  precip_13 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-precip_14 <-
-  precip_14 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
+climate_data_list <- c(
+  "temp_61",
+  "temp_62",
+  "temp_63",
+  "temp_64",
+  "temp_65",
+  "temp_66",
+  "temp_67",
+  "temp_68",
+  "temp_69",
+  "temp_70",
+  "temp_71",
+  "temp_72",
+  "temp_73",
+  "temp_74",
+  "temp_75",
+  "temp_76",
+  "temp_77",
+  "temp_78",
+  "temp_79",
+  "temp_80",
+  "temp_99",
+  "temp_00",
+  "temp_01",
+  "temp_02",
+  "temp_03",
+  "temp_04",
+  "temp_05",
+  "temp_06",
+  "temp_07",
+  "temp_08",
+  "temp_09",
+  "temp_10",
+  "temp_11",
+  "temp_12",
+  "temp_13",
+  "temp_14"
+)
+```
+
+For loop assigning new names to variables:
+```{r}
+for (df in climate_data_list) {
+  assign(df, setNames(get(df),  c(
+      "Longitude",
+      "Latitude",
+      paste("Jan", df, sep = "_"),
+      paste("Feb", df, sep = "_"),
+      paste("Mar", df, sep = "_"),
+      paste("Apr", df, sep = "_"),
+      paste("May", df, sep = "_"),
+      paste("Jun", df, sep = "_"),
+      paste("Jul", df, sep = "_"),
+      paste("Aug", df, sep = "_"),
+      paste("Sep", df, sep = "_"),
+      paste("Oct", df, sep = "_"),
+      paste("Nov", df, sep = "_"),
+      paste("Dec", df, sep = "_")
+    )))
+}
 ```
 
 ```{r}
-temp_01 <-
-  temp_01 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_02 <-
-  temp_02 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_03 <-
-  temp_03 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_04 <-
-  temp_04 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_05 <-
-  temp_05 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_06 <-
-  temp_06 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_07 <-
-  temp_07 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_08 <-
-  temp_08 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_09 <-
-  temp_09 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_10 <-
-  temp_10 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_11 <-
-  temp_11 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_12 <-
-  temp_12 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_13 <-
-  temp_13 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-temp_14 <-
-  temp_14 %>%
-  rename(Longitude = V1,
-    Latitude = V2,
-    Jan = V3,
-    Feb = V4,
-    Mar = V5,
-    Apr = V6,
-    May = V7,
-    Jun = V8,
-    Jul = V9,
-    Aug = V10,
-    Sep = V11,
-    Oct = V12,
-    Nov = V13,
-    Dec = V14)
-```
-
-```{r}
-precip_01 <-
-  precip_01 %>%
-  mutate(Year = 2001)
-precip_02 <-
-  precip_02 %>%
-  mutate(Year = 2002)
-precip_03 <-
-  precip_03 %>%
-  mutate(Year = 2003)
-precip_04 <-
-  precip_04 %>%
-  mutate(Year = 2004)
-precip_05 <-
-  precip_05 %>%
-  mutate(Year = 2005)
-precip_06 <-
-  precip_06 %>%
-  mutate(Year = 2006)
-precip_07 <-
-  precip_07 %>%
-  mutate(Year = 2007)
-precip_08 <-
-  precip_08 %>%
-  mutate(Year = 2008)
-precip_09 <-
-  precip_09 %>%
-  mutate(Year = 2009)
-precip_10 <-
-  precip_10 %>%
-  mutate(Year = 2010)
-precip_11 <-
-  precip_11 %>%
-  mutate(Year = 2011)
-precip_12 <-
-  precip_12 %>%
-  mutate(Year = 2012)
-precip_13 <-
-  precip_13 %>%
-  mutate(Year = 2013)
-precip_14 <-
-  precip_14 %>%
-  mutate(Year = 2014)
-```
-
-```{r}
+temp_61 <-
+  temp_61 %>%
+  mutate(Year = 1961)
+temp_62 <-
+  temp_62 %>%
+  mutate(Year = 1962)
+temp_63 <-
+  temp_63 %>%
+  mutate(Year = 1963)
+temp_64 <-
+  temp_64 %>%
+  mutate(Year = 1964)
+temp_65 <-
+  temp_65 %>%
+  mutate(Year = 1965)
+temp_66 <-
+  temp_66 %>%
+  mutate(Year = 1966)
+temp_67 <-
+  temp_67 %>%
+  mutate(Year = 1967)
+temp_68 <-
+  temp_68 %>%
+  mutate(Year = 1968)
+temp_69 <-
+  temp_69 %>%
+  mutate(Year = 1969)
+temp_70 <-
+  temp_70 %>%
+  mutate(Year = 1970)
+temp_71 <-
+  temp_71 %>%
+  mutate(Year = 1971)
+temp_72 <-
+  temp_72 %>%
+  mutate(Year = 1972)
+temp_73 <-
+  temp_73 %>%
+  mutate(Year = 1973)
+temp_74 <-
+  temp_74 %>%
+  mutate(Year = 1974)
+temp_75 <-
+  temp_75 %>%
+  mutate(Year = 1975)
+temp_76 <-
+  temp_76 %>%
+  mutate(Year = 1976)
+temp_77 <-
+  temp_77 %>%
+  mutate(Year = 1977)
+temp_78 <-
+  temp_78 %>%
+  mutate(Year = 1978)
+temp_79 <-
+  temp_79 %>%
+  mutate(Year = 1979)
+temp_80 <-
+  temp_80 %>%
+  mutate(Year = 1980)
+temp_99 <-
+  temp_99 %>%
+  mutate(Year = 1999)
+temp_00 <-
+  temp_00 %>%
+  mutate(Year = 2000)
 temp_01 <-
   temp_01 %>%
   mutate(Year = 2001)
@@ -640,23 +279,28 @@ st_as_sf_func <- function(z) {
 ```
 
 ```{r}
-precip_01_sf = st_as_sf_func(precip_01)
-precip_02_sf = st_as_sf_func(precip_02)
-precip_03_sf = st_as_sf_func(precip_03)
-precip_04_sf = st_as_sf_func(precip_04)
-precip_05_sf = st_as_sf_func(precip_05)
-precip_06_sf = st_as_sf_func(precip_06)
-precip_07_sf = st_as_sf_func(precip_07)
-precip_08_sf = st_as_sf_func(precip_08)
-precip_09_sf = st_as_sf_func(precip_09)
-precip_10_sf = st_as_sf_func(precip_10)
-precip_11_sf = st_as_sf_func(precip_11)
-precip_12_sf = st_as_sf_func(precip_12)
-precip_13_sf = st_as_sf_func(precip_13)
-precip_14_sf = st_as_sf_func(precip_14)
-```
-
-```{r}
+temp_61_sf = st_as_sf_func(temp_61)
+temp_62_sf = st_as_sf_func(temp_62)
+temp_63_sf = st_as_sf_func(temp_63)
+temp_64_sf = st_as_sf_func(temp_64)
+temp_65_sf = st_as_sf_func(temp_65)
+temp_66_sf = st_as_sf_func(temp_66)
+temp_67_sf = st_as_sf_func(temp_67)
+temp_68_sf = st_as_sf_func(temp_68)
+temp_69_sf = st_as_sf_func(temp_69)
+temp_70_sf = st_as_sf_func(temp_70)
+temp_71_sf = st_as_sf_func(temp_71)
+temp_72_sf = st_as_sf_func(temp_72)
+temp_73_sf = st_as_sf_func(temp_73)
+temp_74_sf = st_as_sf_func(temp_74)
+temp_75_sf = st_as_sf_func(temp_75)
+temp_76_sf = st_as_sf_func(temp_76)
+temp_77_sf = st_as_sf_func(temp_77)
+temp_78_sf = st_as_sf_func(temp_78)
+temp_79_sf = st_as_sf_func(temp_79)
+temp_80_sf = st_as_sf_func(temp_80)
+temp_99_sf = st_as_sf_func(temp_99)
+temp_00_sf = st_as_sf_func(temp_00)
 temp_01_sf = st_as_sf_func(temp_01)
 temp_02_sf = st_as_sf_func(temp_02)
 temp_03_sf = st_as_sf_func(temp_03)
@@ -674,392 +318,195 @@ temp_14_sf = st_as_sf_func(temp_14)
 ```
 
 ```{r}
-site_dat_01_precip <- st_join(site_dat_sf_01,
-                          precip_01_sf,
-                          join = st_nearest_feature)
-site_dat_01_temp <- st_join(site_dat_sf_01,
-                          temp_01_sf,
-                          join = st_nearest_feature)
-site_dat_02_precip <- st_join(site_dat_sf_02,
-                          precip_02_sf,
-                          join = st_nearest_feature)
-site_dat_02_temp <- st_join(site_dat_sf_02,
-                          temp_02_sf,
-                          join = st_nearest_feature)
-site_dat_03_precip <- st_join(site_dat_sf_03,
-                          precip_03_sf,
-                          join = st_nearest_feature)
-site_dat_03_temp <- st_join(site_dat_sf_03,
-                          temp_03_sf,
-                          join = st_nearest_feature)
-site_dat_04_precip <- st_join(site_dat_sf_04,
-                          precip_04_sf,
-                          join = st_nearest_feature)
-site_dat_04_temp <- st_join(site_dat_sf_04,
-                          temp_04_sf,
-                          join = st_nearest_feature)
-site_dat_05_precip <- st_join(site_dat_sf_05,
-                          precip_05_sf,
-                          join = st_nearest_feature)
-site_dat_05_temp <- st_join(site_dat_sf_05,
-                          temp_05_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_06_precip <- st_join(site_dat_sf_06,
-                          precip_06_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_06_temp <- st_join(site_dat_sf_06,
-                          temp_06_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_07_precip <- st_join(site_dat_sf_07,
-                          precip_07_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_07_temp <- st_join(site_dat_sf_07,
-                          temp_07_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_08_precip <- st_join(site_dat_sf_08,
-                          precip_08_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_08_temp <- st_join(site_dat_sf_08,
-                          temp_08_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_09_precip <- st_join(site_dat_sf_09,
-                          precip_09_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_09_temp <- st_join(site_dat_sf_09,
-                          temp_09_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_10_precip <- st_join(site_dat_sf_10,
-                          precip_10_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_10_temp <- st_join(site_dat_sf_10,
-                          temp_10_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_11_precip <- st_join(site_dat_sf_11,
-                          precip_11_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_11_temp <- st_join(site_dat_sf_11,
-                          temp_11_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_12_precip <- st_join(site_dat_sf_12,
-                          precip_12_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_12_temp <- st_join(site_dat_sf_12,
-                          temp_12_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_13_precip <- st_join(site_dat_sf_13,
-                          precip_13_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_13_temp <- st_join(site_dat_sf_13,
-                          temp_13_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_14_precip <- st_join(site_dat_sf_14,
-                          precip_14_sf,
-                          join = st_nearest_feature
-                          )
-site_dat_14_temp <- st_join(site_dat_sf_14,
-                          temp_14_sf,
-                          join = st_nearest_feature
-                          )
+site_dat_01_temp <- site_dat_sf_01
+site_dat_02_temp <- site_dat_sf_02
+site_dat_03_temp <- site_dat_sf_03
+site_dat_04_temp <- site_dat_sf_04
+site_dat_05_temp <- site_dat_sf_05
+site_dat_06_temp <- site_dat_sf_06
+site_dat_07_temp <- site_dat_sf_07
+site_dat_08_temp <- site_dat_sf_08
+site_dat_09_temp <- site_dat_sf_09
+site_dat_10_temp <- site_dat_sf_10
+site_dat_11_temp <- site_dat_sf_11
+site_dat_12_temp <- site_dat_sf_12
+site_dat_13_temp <- site_dat_sf_13
+site_dat_14_temp <- site_dat_sf_14
 ```
 
 ```{r}
-site_dat_01_precip_temp <- full_join(
-  st_drop_geometry(site_dat_01_precip),
-  st_drop_geometry(site_dat_01_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
+temp_ob <- c(
+  "temp_61_sf",
+  "temp_62_sf",
+  "temp_63_sf",
+  "temp_64_sf",
+  "temp_65_sf",
+  "temp_66_sf",
+  "temp_67_sf",
+  "temp_68_sf",
+  "temp_69_sf",
+  "temp_70_sf",
+  "temp_71_sf",
+  "temp_72_sf",
+  "temp_73_sf",
+  "temp_74_sf",
+  "temp_75_sf",
+  "temp_76_sf",
+  "temp_77_sf",
+  "temp_78_sf",
+  "temp_79_sf",
+  "temp_80_sf",
+  "temp_99_sf",
+  "temp_00_sf",
+  "temp_01_sf",
+  "temp_02_sf",
+  "temp_03_sf",
+  "temp_04_sf",
+  "temp_05_sf",
+  "temp_06_sf",
+  "temp_07_sf",
+  "temp_08_sf",
+  "temp_09_sf",
+  "temp_10_sf",
+  "temp_11_sf",
+  "temp_12_sf",
+  "temp_13_sf",
+  "temp_14_sf"
 )
-site_dat_02_precip_temp <- full_join(
-  st_drop_geometry(site_dat_02_precip),
-  st_drop_geometry(site_dat_02_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
-site_dat_03_precip_temp <- full_join(
-  st_drop_geometry(site_dat_03_precip),
-  st_drop_geometry(site_dat_03_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
-site_dat_04_precip_temp <- full_join(
-  st_drop_geometry(site_dat_04_precip),
-  st_drop_geometry(site_dat_04_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
-site_dat_05_precip_temp <- full_join(
-  st_drop_geometry(site_dat_05_precip),
-  st_drop_geometry(site_dat_05_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
-site_dat_06_precip_temp <- full_join(
-  st_drop_geometry(site_dat_06_precip),
-  st_drop_geometry(site_dat_06_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
-site_dat_07_precip_temp <- full_join(
-  st_drop_geometry(site_dat_07_precip),
-  st_drop_geometry(site_dat_07_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
-site_dat_08_precip_temp <- full_join(
-  st_drop_geometry(site_dat_08_precip),
-  st_drop_geometry(site_dat_08_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
-site_dat_09_precip_temp <- full_join(
-  st_drop_geometry(site_dat_09_precip),
-  st_drop_geometry(site_dat_09_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
-site_dat_10_precip_temp <- full_join(
-  st_drop_geometry(site_dat_10_precip),
-  st_drop_geometry(site_dat_10_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
-site_dat_11_precip_temp <- full_join(
-  st_drop_geometry(site_dat_11_precip),
-  st_drop_geometry(site_dat_11_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
-site_dat_12_precip_temp <- full_join(
-  st_drop_geometry(site_dat_12_precip),
-  st_drop_geometry(site_dat_12_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
-site_dat_13_precip_temp <- full_join(
-  st_drop_geometry(site_dat_13_precip),
-  st_drop_geometry(site_dat_13_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
-site_dat_14_precip_temp <- full_join(
-  st_drop_geometry(site_dat_14_precip),
-  st_drop_geometry(site_dat_14_temp),
-  by = c(
-    "StudyID",
-    "StudyID_yr",
-    "SiteID",
-    "Block",
-    "Year.x",
-    "Site_description",
-    "Crop_species",
-    "Management",
-    "Tilling",
-    "Local_diversity",
-    "Other_covariate"
-  ),
-  suffix = c("_precip", "_temp")
-)
+```
+
+```{r}
+for (i in temp_ob) {
+  site_dat_01_temp <- st_join(site_dat_01_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_02_temp <- st_join(site_dat_02_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_03_temp <- st_join(site_dat_03_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_04_temp <- st_join(site_dat_04_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_05_temp <- st_join(site_dat_05_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_06_temp <- st_join(site_dat_06_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_07_temp <- st_join(site_dat_07_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_08_temp <- st_join(site_dat_08_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_09_temp <- st_join(site_dat_09_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_10_temp <- st_join(site_dat_10_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_11_temp <- st_join(site_dat_11_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_12_temp <- st_join(site_dat_12_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_13_temp <- st_join(site_dat_13_temp, get(i), 
+                                join = st_nearest_feature)
+}
+for (i in temp_ob) {
+  site_dat_14_temp <- st_join(site_dat_14_temp, get(i), join = st_nearest_feature)
+}
+```
+
+```{r}
+site_dat_01_temp <- st_drop_geometry(site_dat_01_temp)
+site_dat_02_temp <- st_drop_geometry(site_dat_02_temp)
+site_dat_03_temp <- st_drop_geometry(site_dat_03_temp)
+site_dat_04_temp <- st_drop_geometry(site_dat_04_temp)
+site_dat_05_temp <- st_drop_geometry(site_dat_05_temp)
+site_dat_06_temp <- st_drop_geometry(site_dat_06_temp)
+site_dat_07_temp <- st_drop_geometry(site_dat_07_temp)
+site_dat_08_temp <- st_drop_geometry(site_dat_08_temp)
+site_dat_09_temp <- st_drop_geometry(site_dat_09_temp)
+site_dat_10_temp <- st_drop_geometry(site_dat_10_temp)
+site_dat_11_temp <- st_drop_geometry(site_dat_11_temp)
+site_dat_12_temp <- st_drop_geometry(site_dat_12_temp)
+site_dat_13_temp <- st_drop_geometry(site_dat_13_temp)
+site_dat_14_temp <- st_drop_geometry(site_dat_14_temp)
+```
+
+```{r}
+# site_dat_01_temp <- site_dat_01_temp %>% rename_with(~ str_remove(., '_01'))
+# 
+# site_dat_02_temp <- site_dat_02_temp %>% rename_with(~ str_remove(., '_02'))
+# 
+# site_dat_03_temp <- site_dat_03_temp %>% rename_with(~ str_remove(., '_03'))
+# 
+# site_dat_04_temp <- site_dat_04_temp %>% rename_with(~ str_remove(., '_04'))
+# 
+# site_dat_05_temp <- site_dat_05_temp %>% rename_with(~ str_remove(., '_05'))
+# 
+# site_dat_06_temp <- site_dat_06_temp %>% rename_with(~ str_remove(., '_06'))
+# 
+# site_dat_07_temp <- site_dat_07_temp %>% rename_with(~ str_remove(., '_07'))
+# 
+# site_dat_08_temp <- site_dat_08_temp %>% rename_with(~ str_remove(., '_08'))
+# 
+# site_dat_09_temp <- site_dat_09_temp %>% rename_with(~ str_remove(., '_09'))
+# 
+# site_dat_10_temp <- site_dat_10_temp %>% rename_with(~ str_remove(., '_10'))
+# 
+# site_dat_11_temp <- site_dat_11_temp %>% rename_with(~ str_remove(., '_11'))
+# 
+# site_dat_12_temp <- site_dat_12_temp %>% rename_with(~ str_remove(., '_12'))
+# 
+# site_dat_13_temp <- site_dat_13_temp %>% rename_with(~ str_remove(., '_13'))
+# 
+# site_dat_14_temp <- site_dat_14_temp %>% rename_with(~ str_remove(., '_14'))
 ```
 
 
 ```{r}
-site_dat_precip_temp <-rbind(
-  site_dat_01_precip_temp,
-  site_dat_02_precip_temp,
-  site_dat_03_precip_temp,
-  site_dat_04_precip_temp,
-  site_dat_05_precip_temp,
-  site_dat_06_precip_temp,
-  site_dat_07_precip_temp,
-  site_dat_08_precip_temp,
-  site_dat_09_precip_temp,
-  site_dat_10_precip_temp,
-  site_dat_11_precip_temp,
-  site_dat_12_precip_temp,
-  site_dat_13_precip_temp,
-  site_dat_14_precip_temp
+site_dat_temp <- rbind(
+  site_dat_01_temp,
+  site_dat_02_temp,
+  site_dat_03_temp,
+  site_dat_04_temp,
+  site_dat_05_temp,
+  site_dat_06_temp,
+  site_dat_07_temp,
+  site_dat_08_temp,
+  site_dat_09_temp,
+  site_dat_10_temp,
+  site_dat_11_temp,
+  site_dat_12_temp,
+  site_dat_13_temp,
+  site_dat_14_temp
 )
-site_dat_precip_temp <- site_dat_precip_temp %>%
-  select(-Year.y_precip,
-         -Year.y_temp) %>%
-  rename(c(Year = Year.x))
+site_dat_temp <- site_dat_temp %>%
+  select(-"Year") %>%
+  rename(c(Year = Year.x)) %>%
+  select(-contains("Year."))
+  
 ```
 
 # Write CSV
 
 ```{r}
-write.csv(site_dat_precip_temp, "~/Desktop/clim_land_arthropods/Site_Clim_Data.csv")
+write.csv(site_dat_temp, "~/Desktop/clim_land_arthropods/Site_Clim_Data.csv")
 ```

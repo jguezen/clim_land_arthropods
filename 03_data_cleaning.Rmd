@@ -1,5 +1,5 @@
 ---
-title: "03. Data Cleaning"
+title: "03. Data Cleaning v2"
 author: Jessica Guezen
 output: pdf_document
 ---
@@ -291,194 +291,198 @@ sum(is.na(final_dat$diet_breadth))
 sum(is.na(final_dat$overwintering_habitat))
 sum(is.na(final_dat$dispersal))
 ```
+# Trait syndromes
+
+Create trait (ts) variables for pollinators:
+```{r}
+final_dat %>%
+  filter(
+    Pollinator_study == 1) %>%
+  filter(
+    fg_pollinator == 1) %>%
+  filter(!Management == "organic") %>%
+  filter(!(StudyID_yr == "Diaz01" &  Block == "11")) %>%
+  count(diet_breadth, dispersal, overwintering_habitat) %>% na.omit
+```
+
+```{r}
+final_dat <-
+  final_dat %>%
+  mutate(
+    #T1: diet generalists, flight dispersal, habitat specialists
+    ts_poll_01 = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #T2: diet generalists, flight/wind dispersal, habitat specialists
+    ts_poll_02 = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flight/wind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #T3: diet specialists, flight dispersal, habitat specialists
+    ts_poll_03 = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #T4: diet specialists, flight dispersal, habitat generalists
+    ts_poll_04 = case_when(
+      fg_pollinator == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    )
+  )
+```
 
 ```{r}
 final_dat %>%
-  filter(Pollinator_study == 1) %>%
-  count(diet_breadth, dispersal, overwintering_habitat) 
+filter(ts_poll_01 == 1) %>%
+  group_by(Family) %>%
+  summarize(sum(Abundance))
 ```
 
+```{r}
+final_dat %>%
+filter(ts_poll_03 == 1) %>%
+  group_by(Family) %>%
+  summarize(sum(Abundance))
+```
+
+Create trait (ts) variables for pests:
 ```{r}
 final_dat %>%
   filter(Pest_study == 1) %>%
-  count(diet_breadth, dispersal, overwintering_habitat) 
+  filter(fg_pest == 1) %>%
+  filter(!Management == "organic") %>%
+  filter(!(StudyID_yr == "Diaz01" & Block == "11")) %>%
+  count(diet_breadth, dispersal, overwintering_habitat) %>% na.omit
+```
+
+```{r}
+final_dat <-
+  final_dat %>%
+  mutate(
+    #T1: diet generalists, flight dispersal, habitat specialists
+    ts_pest_01 = case_when(
+      fg_pest == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #T2: diet generalists, flight dispersal, habitat generalists
+    ts_pest_02 = case_when(
+      fg_pest == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #T3: diet generalists, flight/wind dispersal, habitat generalists
+    ts_pest_03 = case_when(
+      fg_pest == 1 &
+      diet_breadth == "generalist" &
+      dispersal == "flight/wind" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #T4: diet specialists, flight dispersal, habitat specialists
+    ts_pest_04 = case_when(
+      fg_pest == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #T5: diet specialists, flight/wind dispersal, habitat specialists
+    ts_pest_05 = case_when(
+      fg_pest == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight/wind" &
+        overwintering_habitat == "natural, margin" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    ),
+    #T6: diet specialists, flight/wind dispersal, habitat generalists
+    ts_pest_06 = case_when(
+      fg_pest == 1 &
+      diet_breadth == "specialist" &
+      dispersal == "flight/wind" &
+        overwintering_habitat == "natural, margin, crop" ~ 1,
+      is.na(diet_breadth) | 
+        is.na(dispersal) | 
+        is.na(overwintering_habitat) ~ NA,
+      .default = 0
+    )
+  )
 ```
 
 ```{r}
 final_dat %>%
+filter(ts_pest_05 == 1) %>%
+  group_by(Family) %>%
+  summarize(sum(Abundance))
+```
+
+```{r}
+final_dat %>%
+filter(ts_pest_06 == 1) %>%
+  group_by(Family) %>%
+  summarize(sum(Abundance))
+```
+
+Create trait (ts) variables for natural enemies:
+```{r}
+final_dat %>%
   filter(Nat_enemy_study == 1) %>%
-  count(diet_breadth, dispersal, overwintering_habitat) 
+  filter(fg_nat_enemy == 1) %>%
+  filter(!Management == "organic") %>%
+  filter(!(StudyID_yr == "Diaz01" & Block == "11")) %>%
+  count(diet_breadth, dispersal, overwintering_habitat) %>% na.omit
 ```
 
-Create trait syndrome (ts) variables for pollinators:
 ```{r}
 final_dat <-
   final_dat %>%
   mutate(
-    #TS1
-    ts_poll_gen_flight_noncrop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "flight" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS2
-    ts_poll_gen_flight_crop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "flight" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS3
-    ts_poll_gen_flightwind_noncrop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "flightwind" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS4
-    ts_poll_gen_flightwind_crop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "flightwind" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS5
-    ts_poll_gen_ground_noncrop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "ground" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS6
-    ts_poll_gen_ground_crop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "ground" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS7
-    ts_poll_gen_wind_noncrop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "wind" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS8
-    ts_poll_gen_wind_crop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "wind" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS9
-    ts_poll_spec_flight_noncrop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "flight" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS10
-    ts_poll_spec_flight_crop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "flight" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS11
-    ts_poll_spec_flightwind_noncrop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "flight/wind" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS12
-    ts_poll_spec_flightwind_crop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "flight/wind" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS13
-    ts_poll_spec_ground_noncrop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "ground" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS14
-    ts_poll_spec_wind_noncrop = case_when(
-      fg_pollinator == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "wind" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    )
-  )
-```
-
-Create trait syndrome (ts) variables for natural enemies:
-```{r}
-final_dat <-
-  final_dat %>%
-  mutate(
-    #TS1
-    ts_nat_gen_flight_noncrop = case_when(
+    #T1: diet generalists, flight dispersal, habitat specialists
+    ts_nat_enemy_01 = case_when(
       fg_nat_enemy == 1 &
       diet_breadth == "generalist" &
       dispersal == "flight" &
@@ -488,8 +492,8 @@ final_dat <-
         is.na(overwintering_habitat) ~ NA,
       .default = 0
     ),
-    #TS2
-    ts_nat_gen_flight_crop = case_when(
+    #T2: diet generalists, flight dispersal, habitat generalists
+    ts_nat_enemy_02 = case_when(
       fg_nat_enemy == 1 &
       diet_breadth == "generalist" &
       dispersal == "flight" &
@@ -499,30 +503,8 @@ final_dat <-
         is.na(overwintering_habitat) ~ NA,
       .default = 0
     ),
-    #TS3
-    ts_nat_gen_flightwind_noncrop = case_when(
-      fg_nat_enemy == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "flightwind" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS4
-    ts_nat_gen_flightwind_crop = case_when(
-      fg_nat_enemy == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "flightwind" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS5
-    ts_nat_gen_ground_noncrop = case_when(
+    #T3: diet generalists, ground dispersal, habitat specialists
+    ts_nat_enemy_03 = case_when(
       fg_nat_enemy == 1 &
       diet_breadth == "generalist" &
       dispersal == "ground" &
@@ -532,8 +514,8 @@ final_dat <-
         is.na(overwintering_habitat) ~ NA,
       .default = 0
     ),
-    #TS6
-    ts_nat_gen_ground_crop = case_when(
+    #T4: diet generalists, ground dispersal, habitat generalists
+    ts_nat_enemy_04 = case_when(
       fg_nat_enemy == 1 &
       diet_breadth == "generalist" &
       dispersal == "ground" &
@@ -543,8 +525,8 @@ final_dat <-
         is.na(overwintering_habitat) ~ NA,
       .default = 0
     ),
-    #TS7
-    ts_nat_gen_wind_noncrop = case_when(
+    #T5: diet generalists, wind dispersal, habitat specialists
+    ts_nat_enemy_05 = case_when(
       fg_nat_enemy == 1 &
       diet_breadth == "generalist" &
       dispersal == "wind" &
@@ -554,8 +536,8 @@ final_dat <-
         is.na(overwintering_habitat) ~ NA,
       .default = 0
     ),
-    #TS8
-    ts_nat_gen_wind_crop = case_when(
+    #T6: diet generalists, wind dispersal, habitat generalists
+    ts_nat_enemy_06 = case_when(
       fg_nat_enemy == 1 &
       diet_breadth == "generalist" &
       dispersal == "wind" &
@@ -565,8 +547,8 @@ final_dat <-
         is.na(overwintering_habitat) ~ NA,
       .default = 0
     ),
-    #TS9
-    ts_nat_spec_flight_noncrop = case_when(
+    #T7: diet specialists, flight dispersal, habitat specialists
+    ts_nat_enemy_07 = case_when(
       fg_nat_enemy == 1 &
       diet_breadth == "specialist" &
       dispersal == "flight" &
@@ -576,8 +558,8 @@ final_dat <-
         is.na(overwintering_habitat) ~ NA,
       .default = 0
     ),
-    #TS10
-    ts_nat_spec_flight_crop = case_when(
+    #T8: diet specialists, flight dispersal, habitat generalists
+    ts_nat_enemy_08 = case_when(
       fg_nat_enemy == 1 &
       diet_breadth == "specialist" &
       dispersal == "flight" &
@@ -587,8 +569,8 @@ final_dat <-
         is.na(overwintering_habitat) ~ NA,
       .default = 0
     ),
-    #TS11
-    ts_nat_spec_flightwind_noncrop = case_when(
+    #T9: diet specialists, flight/wind dispersal, habitat specialists
+    ts_nat_enemy_09 = case_when(
       fg_nat_enemy == 1 &
       diet_breadth == "specialist" &
       dispersal == "flight/wind" &
@@ -598,19 +580,8 @@ final_dat <-
         is.na(overwintering_habitat) ~ NA,
       .default = 0
     ),
-    #TS12
-    ts_nat_spec_flightwind_crop = case_when(
-      fg_nat_enemy == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "flight/wind" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS13
-    ts_nat_spec_ground_noncrop = case_when(
+    #T10: diet specialists, ground dispersal, habitat specialists
+    ts_nat_enemy_10 = case_when(
       fg_nat_enemy == 1 &
       diet_breadth == "specialist" &
       dispersal == "ground" &
@@ -620,8 +591,8 @@ final_dat <-
         is.na(overwintering_habitat) ~ NA,
       .default = 0
     ),
-    #TS14
-    ts_nat_spec_wind_noncrop = case_when(
+    #T11: diet specialists, wind dispersal, habitat specialists
+    ts_nat_enemy_11 = case_when(
       fg_nat_enemy == 1 &
       diet_breadth == "specialist" &
       dispersal == "wind" &
@@ -634,176 +605,44 @@ final_dat <-
   )
 ```
 
-Create trait syndrome (ts) variables for pests:
 ```{r}
-final_dat <-
-  final_dat %>%
-  mutate(
-    #TS1
-    ts_pest_gen_flight_noncrop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "flight" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS2
-    ts_pest_gen_flight_crop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "flight" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS3
-    ts_pest_gen_flightwind_noncrop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "flightwind" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS4
-    ts_pest_gen_flightwind_crop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "flightwind" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS5
-    ts_pest_gen_ground_noncrop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "ground" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS6
-    ts_pest_gen_ground_crop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "ground" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS7
-    ts_pest_gen_wind_noncrop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "wind" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS8
-    ts_pest_gen_wind_crop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "generalist" &
-      dispersal == "wind" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS9
-    ts_pest_spec_flight_noncrop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "flight" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS10
-    ts_pest_spec_flight_crop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "flight" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS11
-    ts_pest_spec_flightwind_noncrop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "flight/wind" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS12
-    ts_pest_spec_flightwind_crop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "flight/wind" &
-        overwintering_habitat == "natural, margin, crop" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS13
-    ts_pest_spec_ground_noncrop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "ground" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    ),
-    #TS14
-    ts_pest_spec_wind_noncrop = case_when(
-      fg_pest == 1 &
-      diet_breadth == "specialist" &
-      dispersal == "wind" &
-        overwintering_habitat == "natural, margin" ~ 1,
-      is.na(diet_breadth) | 
-        is.na(dispersal) | 
-        is.na(overwintering_habitat) ~ NA,
-      .default = 0
-    )
-  )
+final_dat %>%
+filter(ts_nat_enemy_02 == 1) %>%
+  group_by(Family) %>%
+  summarize(sum(Abundance))
+```
+
+```{r}
+final_dat %>%
+filter(ts_nat_enemy_03 == 1) %>%
+  group_by(Family) %>%
+  summarize(sum(Abundance))
+```
+
+```{r}
+final_dat %>%
+filter(ts_nat_enemy_04 == 1) %>%
+  group_by(Family) %>%
+  summarize(sum(Abundance))
+```
+
+```{r}
+final_dat %>%
+filter(fg_nat_enemy == 1) %>%
+filter(diet_breadth == "specialist") %>%
+  group_by(Family) %>%
+  summarize(sum(Abundance))
 ```
 
 # Final data cleaning
 
-Remove organic sites:
+Remove organic sites and instance where sites within a Block are represented by more than one value for climate variables:
 ```{r}
 final_dat <-
   final_dat %>%
-  filter(!Management == "organic")%>%
-  dplyr::select(-Management)
+  filter(!Management == "organic") %>%
+  dplyr::select(-Management) %>%
+  filter(!(StudyID_yr == "Diaz01" &  Block == "11")) #remove single instance where sites within a Block are represented by more than one value for climate variables (n = 4 obs)
 ```
 
 Calculate abundance and sampling effort: 
@@ -816,100 +655,59 @@ final_dat <-
            Sampling_method,
            Block)%>%
   mutate(total_abund = sum(Abundance),
-         #pollinator TS:
-         ts_poll_gen_flight_noncrop_abund = 
-           sum(ts_poll_gen_flight_noncrop*Abundance),
-         ts_poll_gen_flight_crop_abund = 
-           sum(ts_poll_gen_flight_crop*Abundance),
-         ts_poll_gen_flightwind_noncrop_abund = 
-           sum(ts_poll_gen_flightwind_noncrop*Abundance),
-         ts_poll_gen_flightwind_crop_abund = 
-           sum(ts_poll_gen_flightwind_crop*Abundance),
-         ts_poll_gen_ground_noncrop_abund = 
-           sum(ts_poll_gen_ground_noncrop*Abundance),
-         ts_poll_gen_ground_crop_abund = 
-           sum(ts_poll_gen_ground_crop*Abundance),
-         ts_poll_gen_wind_noncrop_abund = 
-           sum(ts_poll_gen_wind_noncrop*Abundance),
-         ts_poll_gen_wind_crop_abund = 
-           sum(ts_poll_gen_wind_crop*Abundance),
-         ts_poll_spec_flight_noncrop_abund = 
-           sum(ts_poll_spec_flight_noncrop*Abundance),
-         ts_poll_spec_flight_crop_abund = 
-           sum(ts_poll_spec_flight_crop*Abundance),
-         ts_poll_spec_flightwind_noncrop_abund = 
-           sum(ts_poll_spec_flightwind_noncrop*Abundance),
-         ts_poll_spec_flightwind_crop_abund = 
-           sum(ts_poll_spec_flightwind_crop*Abundance),
-         ts_poll_spec_ground_noncrop_abund = 
-           sum(ts_poll_spec_ground_noncrop*Abundance),
-         ts_poll_spec_wind_noncrop_abund = 
-           sum(ts_poll_spec_wind_noncrop*Abundance),
-         #Natural enemy TS:
-         ts_nat_gen_flight_noncrop_abund = 
-           sum(ts_nat_gen_flight_noncrop*Abundance),
-         ts_nat_gen_flight_crop_abund = 
-           sum(ts_nat_gen_flight_crop*Abundance),
-         ts_nat_gen_flightwind_noncrop_abund = 
-           sum(ts_nat_gen_flightwind_noncrop*Abundance),
-         ts_nat_gen_flightwind_crop_abund = 
-           sum(ts_nat_gen_flightwind_crop*Abundance),
-         ts_nat_gen_ground_noncrop_abund = 
-           sum(ts_nat_gen_ground_noncrop*Abundance),
-         ts_nat_gen_ground_crop_abund = 
-           sum(ts_nat_gen_ground_crop*Abundance),
-         ts_nat_gen_wind_noncrop_abund = 
-           sum(ts_nat_gen_wind_noncrop*Abundance),
-         ts_nat_gen_wind_crop_abund = 
-           sum(ts_nat_gen_wind_crop*Abundance),
-         ts_nat_spec_flight_noncrop_abund = 
-           sum(ts_nat_spec_flight_noncrop*Abundance),
-         ts_nat_spec_flight_crop_abund = 
-           sum(ts_nat_spec_flight_crop*Abundance),
-         ts_nat_spec_flightwind_noncrop_abund = 
-           sum(ts_nat_spec_flightwind_noncrop*Abundance),
-         ts_nat_spec_flightwind_crop_abund = 
-           sum(ts_nat_spec_flightwind_crop*Abundance),
-         ts_nat_spec_ground_noncrop_abund = 
-           sum(ts_nat_spec_ground_noncrop*Abundance),
-         ts_nat_spec_wind_noncrop_abund = 
-           sum(ts_nat_spec_wind_noncrop*Abundance),
-         #Pest TS:
-         ts_pest_gen_flight_noncrop_abund = 
-           sum(ts_pest_gen_flight_noncrop*Abundance),
-         ts_pest_gen_flight_crop_abund = 
-           sum(ts_pest_gen_flight_crop*Abundance),
-         ts_pest_gen_flightwind_noncrop_abund = 
-           sum(ts_pest_gen_flightwind_noncrop*Abundance),
-         ts_pest_gen_flightwind_crop_abund = 
-           sum(ts_pest_gen_flightwind_crop*Abundance),
-         ts_pest_gen_ground_noncrop_abund = 
-           sum(ts_pest_gen_ground_noncrop*Abundance),
-         ts_pest_gen_ground_crop_abund = 
-           sum(ts_pest_gen_ground_crop*Abundance),
-         ts_pest_gen_wind_noncrop_abund = 
-           sum(ts_pest_gen_wind_noncrop*Abundance),
-         ts_pest_gen_wind_crop_abund = 
-           sum(ts_pest_gen_wind_crop*Abundance),
-         ts_pest_spec_flight_noncrop_abund = 
-           sum(ts_pest_spec_flight_noncrop*Abundance),
-         ts_pest_spec_flight_crop_abund = 
-           sum(ts_pest_spec_flight_crop*Abundance),
-         ts_pest_spec_flightwind_noncrop_abund = 
-           sum(ts_pest_spec_flightwind_noncrop*Abundance),
-         ts_pest_spec_flightwind_crop_abund = 
-           sum(ts_pest_spec_flightwind_crop*Abundance),
-         ts_pest_spec_ground_noncrop_abund = 
-           sum(ts_pest_spec_ground_noncrop*Abundance),
-         ts_pest_spec_wind_noncrop_abund = 
-           sum(ts_pest_spec_wind_noncrop*Abundance),
          #Functional groups:
          fg_pollinator_abund = 
            sum(fg_pollinator*Abundance),
          fg_nat_enemy_abund = 
            sum(fg_nat_enemy*Abundance),
          fg_pest_abund = 
-           sum(fg_pest*Abundance))%>%
+           sum(fg_pest*Abundance),
+         #Traits for pollinators:
+         ts_poll_01_abund = 
+           sum(ts_poll_01*Abundance),
+         ts_poll_02_abund = 
+           sum(ts_poll_02*Abundance),
+         ts_poll_03_abund = 
+           sum(ts_poll_03*Abundance),
+         ts_poll_04_abund = 
+           sum(ts_poll_04*Abundance),
+         #Traits for pests:
+         ts_pest_01_abund = 
+           sum(ts_pest_01*Abundance),
+         ts_pest_02_abund = 
+           sum(ts_pest_02*Abundance),
+         ts_pest_03_abund = 
+           sum(ts_pest_03*Abundance),
+         ts_pest_04_abund = 
+           sum(ts_pest_04*Abundance),
+         ts_pest_05_abund = 
+           sum(ts_pest_05*Abundance),
+         ts_pest_06_abund = 
+           sum(ts_pest_06*Abundance),
+         #Traits for natural enemies:
+         ts_nat_enemy_01_abund = 
+           sum(ts_nat_enemy_01*Abundance),
+         ts_nat_enemy_02_abund = 
+           sum(ts_nat_enemy_02*Abundance),
+         ts_nat_enemy_03_abund = 
+           sum(ts_nat_enemy_03*Abundance),
+         ts_nat_enemy_04_abund = 
+           sum(ts_nat_enemy_04*Abundance),
+         ts_nat_enemy_05_abund = 
+           sum(ts_nat_enemy_05*Abundance),
+         ts_nat_enemy_06_abund = 
+           sum(ts_nat_enemy_06*Abundance),
+         ts_nat_enemy_07_abund = 
+           sum(ts_nat_enemy_07*Abundance),
+         ts_nat_enemy_08_abund = 
+           sum(ts_nat_enemy_08*Abundance),
+         ts_nat_enemy_09_abund = 
+           sum(ts_nat_enemy_09*Abundance),
+         ts_nat_enemy_10_abund = 
+           sum(ts_nat_enemy_10*Abundance),
+         ts_nat_enemy_11_abund = 
+           sum(ts_nat_enemy_11*Abundance)
+         ) %>%
   dplyr::select(-corrected_name,
          -OrganismID,
          -Abundance,
@@ -923,48 +721,27 @@ final_dat <-
          -overwintering_habitat,
          -dispersal,
          -stratum,
-         -ts_poll_gen_flight_noncrop,
-         -ts_poll_gen_flight_crop,
-         -ts_poll_gen_flightwind_noncrop,
-         -ts_poll_gen_flightwind_crop,
-         -ts_poll_gen_ground_noncrop,
-         -ts_poll_gen_ground_crop,
-         -ts_poll_gen_wind_noncrop,
-         -ts_poll_gen_wind_crop,
-         -ts_poll_spec_flight_noncrop,
-         -ts_poll_spec_flight_crop,
-         -ts_poll_spec_flightwind_noncrop,
-         -ts_poll_spec_flightwind_crop,
-         -ts_poll_spec_ground_noncrop,
-         -ts_poll_spec_wind_noncrop,
-         -ts_nat_gen_flight_noncrop,
-         -ts_nat_gen_flight_crop,
-         -ts_nat_gen_flightwind_noncrop,
-         -ts_nat_gen_flightwind_crop,
-         -ts_nat_gen_ground_noncrop,
-         -ts_nat_gen_ground_crop,
-         -ts_nat_gen_wind_noncrop,
-         -ts_nat_gen_wind_crop,
-         -ts_nat_spec_flight_noncrop,
-         -ts_nat_spec_flight_crop,
-         -ts_nat_spec_flightwind_noncrop,
-         -ts_nat_spec_flightwind_crop,
-         -ts_nat_spec_ground_noncrop,
-         -ts_nat_spec_wind_noncrop,
-         -ts_pest_gen_flight_noncrop,
-         -ts_pest_gen_flight_crop,
-         -ts_pest_gen_flightwind_noncrop,
-         -ts_pest_gen_flightwind_crop,
-         -ts_pest_gen_ground_noncrop,
-         -ts_pest_gen_ground_crop,
-         -ts_pest_gen_wind_noncrop,
-         -ts_pest_gen_wind_crop,
-         -ts_pest_spec_flight_noncrop,
-         -ts_pest_spec_flight_crop,
-         -ts_pest_spec_flightwind_noncrop,
-         -ts_pest_spec_flightwind_crop,
-         -ts_pest_spec_ground_noncrop,
-         -ts_pest_spec_wind_noncrop,
+         -ts_poll_01,
+         -ts_poll_02,
+         -ts_poll_03,
+         -ts_poll_04,
+         -ts_pest_01,
+         -ts_pest_02,
+         -ts_pest_03,
+         -ts_pest_04,
+         -ts_pest_05,
+         -ts_pest_06,
+         -ts_nat_enemy_01,
+         -ts_nat_enemy_02,
+         -ts_nat_enemy_03,
+         -ts_nat_enemy_04,
+         -ts_nat_enemy_05,
+         -ts_nat_enemy_06,
+         -ts_nat_enemy_07,
+         -ts_nat_enemy_08,
+         -ts_nat_enemy_09,
+         -ts_nat_enemy_10,
+         -ts_nat_enemy_11,
          -fg_pollinator,
          -fg_nat_enemy,
          -fg_pest) %>%
@@ -989,96 +766,53 @@ Calculate abundances scaled by sampling effort:
 ```{r}
 final_dat <-
   final_dat %>%
-  group_by(StudyID,
-           Year) %>%
+  group_by(StudyID, Year) %>%
   mutate(sampling_effort_scaled = sampling_effort / max(sampling_effort)) %>%
   ungroup() %>%
   mutate(
     total_abund_scaled = total_abund / sampling_effort_scaled,
-    ts_poll_gen_flight_noncrop_abund_scaled =
-      ts_poll_gen_flight_noncrop_abund / sampling_effort_scaled,
-    ts_poll_gen_flight_crop_abund_scaled =
-      ts_poll_gen_flight_crop_abund / sampling_effort_scaled,
-    ts_poll_gen_flightwind_noncrop_abund_scaled =
-      ts_poll_gen_flightwind_noncrop_abund / sampling_effort_scaled,
-    ts_poll_gen_flightwind_crop_abund_scaled =
-      ts_poll_gen_flightwind_crop_abund / sampling_effort_scaled,
-    ts_poll_gen_ground_noncrop_abund_scaled =
-      ts_poll_gen_ground_noncrop_abund / sampling_effort_scaled,
-    ts_poll_gen_ground_crop_abund_scaled =
-      ts_poll_gen_ground_crop_abund / sampling_effort_scaled,
-    ts_poll_gen_wind_noncrop_abund_scaled =
-      ts_poll_gen_wind_noncrop_abund / sampling_effort_scaled,
-    ts_poll_gen_wind_crop_abund_scaled =
-      ts_poll_gen_wind_crop_abund / sampling_effort_scaled,
-    ts_poll_spec_flight_noncrop_abund_scaled =
-      ts_poll_spec_flight_noncrop_abund / sampling_effort_scaled,
-    ts_poll_spec_flight_crop_abund_scaled =
-      ts_poll_spec_flight_crop_abund / sampling_effort_scaled,
-    ts_poll_spec_flightwind_noncrop_abund_scaled =
-      ts_poll_spec_flightwind_noncrop_abund / sampling_effort_scaled,
-    ts_poll_spec_flightwind_crop_abund_scaled =
-      ts_poll_spec_flightwind_crop_abund / sampling_effort_scaled,
-    ts_poll_spec_ground_noncrop_abund_scaled =
-      ts_poll_spec_ground_noncrop_abund / sampling_effort_scaled,
-    ts_poll_spec_wind_noncrop_abund_scaled =
-      ts_poll_spec_wind_noncrop_abund / sampling_effort_scaled,
-    ts_nat_gen_flight_noncrop_abund_scaled =
-      ts_nat_gen_flight_noncrop_abund / sampling_effort_scaled,
-    ts_nat_gen_flight_crop_abund_scaled =
-      ts_nat_gen_flight_crop_abund / sampling_effort_scaled,
-    ts_nat_gen_flightwind_noncrop_abund_scaled =
-      ts_nat_gen_flightwind_noncrop_abund / sampling_effort_scaled,
-    ts_nat_gen_flightwind_crop_abund_scaled =
-      ts_nat_gen_flightwind_crop_abund / sampling_effort_scaled,
-    ts_nat_gen_ground_noncrop_abund_scaled =
-      ts_nat_gen_ground_noncrop_abund / sampling_effort_scaled,
-    ts_nat_gen_ground_crop_abund_scaled =
-      ts_nat_gen_ground_crop_abund / sampling_effort_scaled,
-    ts_nat_gen_wind_noncrop_abund_scaled =
-      ts_nat_gen_wind_noncrop_abund / sampling_effort_scaled,
-    ts_nat_gen_wind_crop_abund_scaled =
-      ts_nat_gen_wind_crop_abund / sampling_effort_scaled,
-    ts_nat_spec_flight_noncrop_abund_scaled =
-      ts_nat_spec_flight_noncrop_abund / sampling_effort_scaled,
-    ts_nat_spec_flight_crop_abund_scaled =
-      ts_nat_spec_flight_crop_abund / sampling_effort_scaled,
-    ts_nat_spec_flightwind_noncrop_abund_scaled =
-      ts_nat_spec_flightwind_noncrop_abund / sampling_effort_scaled,
-    ts_nat_spec_flightwind_crop_abund_scaled =
-      ts_nat_spec_flightwind_crop_abund / sampling_effort_scaled,
-    ts_nat_spec_ground_noncrop_abund_scaled =
-      ts_nat_spec_ground_noncrop_abund / sampling_effort_scaled,
-    ts_nat_spec_wind_noncrop_abund_scaled =
-      ts_nat_spec_wind_noncrop_abund / sampling_effort_scaled,
-    ts_pest_gen_flight_noncrop_abund_scaled =
-      ts_pest_gen_flight_noncrop_abund / sampling_effort_scaled,
-    ts_pest_gen_flight_crop_abund_scaled =
-      ts_pest_gen_flight_crop_abund / sampling_effort_scaled,
-    ts_pest_gen_flightwind_noncrop_abund_scaled =
-      ts_pest_gen_flightwind_noncrop_abund / sampling_effort_scaled,
-    ts_pest_gen_flightwind_crop_abund_scaled =
-      ts_pest_gen_flightwind_crop_abund / sampling_effort_scaled,
-    ts_pest_gen_ground_noncrop_abund_scaled =
-      ts_pest_gen_ground_noncrop_abund / sampling_effort_scaled,
-    ts_pest_gen_ground_crop_abund_scaled =
-      ts_pest_gen_ground_crop_abund / sampling_effort_scaled,
-    ts_pest_gen_wind_noncrop_abund_scaled =
-      ts_pest_gen_wind_noncrop_abund / sampling_effort_scaled,
-    ts_pest_gen_wind_crop_abund_scaled =
-      ts_pest_gen_wind_crop_abund / sampling_effort_scaled,
-    ts_pest_spec_flight_noncrop_abund_scaled =
-      ts_pest_spec_flight_noncrop_abund / sampling_effort_scaled,
-    ts_pest_spec_flight_crop_abund_scaled =
-      ts_pest_spec_flight_crop_abund / sampling_effort_scaled,
-    ts_pest_spec_flightwind_noncrop_abund_scaled =
-      ts_pest_spec_flightwind_noncrop_abund / sampling_effort_scaled,
-    ts_pest_spec_flightwind_crop_abund_scaled =
-      ts_pest_spec_flightwind_crop_abund / sampling_effort_scaled,
-    ts_pest_spec_ground_noncrop_abund_scaled =
-      ts_pest_spec_ground_noncrop_abund / sampling_effort_scaled,
-    ts_pest_spec_wind_noncrop_abund_scaled =
-      ts_pest_spec_wind_noncrop_abund / sampling_effort_scaled,
+    ts_poll_01_abund_scaled =
+      ts_poll_01_abund / sampling_effort_scaled,
+    ts_poll_02_abund_scaled =
+      ts_poll_02_abund / sampling_effort_scaled,
+    ts_poll_03_abund_scaled =
+      ts_poll_03_abund / sampling_effort_scaled,
+    ts_poll_04_abund_scaled =
+      ts_poll_04_abund / sampling_effort_scaled,
+    ts_pest_01_abund_scaled =
+      ts_pest_01_abund / sampling_effort_scaled,
+    ts_pest_02_abund_scaled =
+      ts_pest_02_abund / sampling_effort_scaled,
+    ts_pest_03_abund_scaled =
+      ts_pest_03_abund / sampling_effort_scaled,
+    ts_pest_04_abund_scaled =
+      ts_pest_04_abund / sampling_effort_scaled,
+    ts_pest_05_abund_scaled =
+      ts_pest_05_abund / sampling_effort_scaled,
+    ts_pest_06_abund_scaled =
+      ts_pest_06_abund / sampling_effort_scaled,
+    ts_nat_enemy_01_abund_scaled =
+      ts_nat_enemy_01_abund / sampling_effort_scaled,
+    ts_nat_enemy_02_abund_scaled =
+      ts_nat_enemy_02_abund / sampling_effort_scaled,
+    ts_nat_enemy_03_abund_scaled =
+      ts_nat_enemy_03_abund / sampling_effort_scaled,
+    ts_nat_enemy_04_abund_scaled =
+      ts_nat_enemy_04_abund / sampling_effort_scaled,
+    ts_nat_enemy_05_abund_scaled =
+      ts_nat_enemy_05_abund / sampling_effort_scaled,
+    ts_nat_enemy_06_abund_scaled =
+      ts_nat_enemy_06_abund / sampling_effort_scaled,
+    ts_nat_enemy_07_abund_scaled =
+      ts_nat_enemy_07_abund / sampling_effort_scaled,
+    ts_nat_enemy_08_abund_scaled =
+      ts_nat_enemy_08_abund / sampling_effort_scaled,
+    ts_nat_enemy_09_abund_scaled =
+      ts_nat_enemy_09_abund / sampling_effort_scaled,
+    ts_nat_enemy_10_abund_scaled =
+      ts_nat_enemy_10_abund / sampling_effort_scaled,
+    ts_nat_enemy_11_abund_scaled =
+      ts_nat_enemy_11_abund / sampling_effort_scaled,
     fg_pollinator_abund_scaled =
       fg_pollinator_abund / sampling_effort_scaled,
     fg_nat_enemy_abund_scaled =
@@ -1100,12 +834,12 @@ final_dat <-
       semi_1000 = Percent_seminatural_1000,
       semi_2000 = Percent_seminatural_2000,
       semi_3000 = Percent_seminatural_3000,
-      arable_100 = Percent_arable_100,
-      arable_250 = Percent_arable_250,
-      arable_500 = Percent_arable_500,
-      arable_1000 = Percent_arable_1000,
-      arable_2000 = Percent_arable_2000,
-      arable_3000 = Percent_arable_3000,
+      forest_100 = Percent_forest_100,
+      forest_250 = Percent_forest_250,
+      forest_500 = Percent_forest_500,
+      forest_1000 = Percent_forest_1000,
+      forest_2000 = Percent_forest_2000,
+      forest_3000 = Percent_forest_3000,
       edge_100 = Total_Edge_density_kmperha_100,
       edge_250 = Total_Edge_density_kmperha_250,
       edge_500 = Total_Edge_density_kmperha_500,
@@ -1116,114 +850,329 @@ final_dat <-
   )
 ```
 
-Calculate climate variables:
+Add variable "semifor" combining % forest and % semi-natural habitat:
 ```{r}
 final_dat <-
   final_dat %>%
   rowwise() %>%
   mutate(
-    TAP = sum(
-      Jan_precip,
-      Feb_precip,
-      Mar_precip,
-      Apr_precip,
-      May_precip,
-      Jun_precip,
-      Jul_precip,
-      Aug_precip,
-      Sep_precip,
-      Oct_precip,
-      Nov_precip,
-      Dec_precip
+    semifor_100 = sum(c(semi_100, forest_100)),
+    semifor_250 = sum(c(semi_250, forest_250)),
+    semifor_500 = sum(c(semi_500, forest_500)),
+    semifor_1000 = sum(c(semi_1000, forest_1000)),
+    semifor_2000 = sum(c(semi_2000, forest_2000)),
+    semifor_3000 = sum(c(semi_3000, forest_3000))
+    )
+```
+
+# Climate variables
+
+Calculate climate variables for present conditions:
+```{r}
+final_dat <-
+  final_dat %>%
+  rowwise() %>%
+  mutate(
+    present_MAT = case_when(
+      Year == "2001" ~
+        mean(c_across(ends_with("_temp_01"))),
+      Year == "2002" ~
+        mean(c_across(ends_with("_temp_02"))),
+      Year == "2003" ~
+        mean(c_across(ends_with("_temp_03"))),
+      Year == "2004" ~
+        mean(c_across(ends_with("_temp_04"))),
+      Year == "2005" ~
+        mean(c_across(ends_with("_temp_05"))),
+      Year == "2006" ~
+        mean(c_across(ends_with("_temp_06"))),
+      Year == "2007" ~
+        mean(c_across(ends_with("_temp_07"))),
+      Year == "2008" ~
+        mean(c_across(ends_with("_temp_08"))),
+      Year == "2009" ~
+        mean(c_across(ends_with("_temp_09"))),
+      Year == "2010" ~
+        mean(c_across(ends_with("_temp_10"))),
+      Year == "2011" ~
+        mean(c_across(ends_with("_temp_11"))),
+      Year == "2012" ~
+        mean(c_across(ends_with("_temp_12"))),
+      Year == "2013" ~
+        mean(c_across(ends_with("_temp_13"))),
+      Year == "2014" ~
+        mean(c_across(ends_with("_temp_14")))
     ),
-    min_precip = min(
-      Jan_precip,
-      Feb_precip,
-      Mar_precip,
-      Apr_precip,
-      May_precip,
-      Jun_precip,
-      Jul_precip,
-      Aug_precip,
-      Sep_precip,
-      Oct_precip,
-      Nov_precip,
-      Dec_precip
-    ),
-    max_precip = max(
-      Jan_precip,
-      Feb_precip,
-      Mar_precip,
-      Apr_precip,
-      May_precip,
-      Jun_precip,
-      Jul_precip,
-      Aug_precip,
-      Sep_precip,
-      Oct_precip,
-      Nov_precip,
-      Dec_precip
-    ),
-    MAT = mean(
-      c(
-        Jan_temp,
-        Feb_temp,
-        Mar_temp,
-        Apr_temp,
-        May_temp,
-        Jun_temp,
-        Jul_temp,
-        Aug_temp,
-        Sep_temp,
-        Oct_temp,
-        Nov_temp,
-        Dec_temp
-      )
-    ),
-    min_temp = min(
-      c(
-        Jan_temp,
-        Feb_temp,
-        Mar_temp,
-        Apr_temp,
-        May_temp,
-        Jun_temp,
-        Jul_temp,
-        Aug_temp,
-        Sep_temp,
-        Oct_temp,
-        Nov_temp,
-        Dec_temp
-      )
-    ),
-    max_temp = max(
-      c(
-        Jan_temp,
-        Feb_temp,
-        Mar_temp,
-        Apr_temp,
-        May_temp,
-        Jun_temp,
-        Jul_temp,
-        Aug_temp,
-        Sep_temp,
-        Oct_temp,
-        Nov_temp,
-        Dec_temp
-      )
+    present_VAT = case_when(
+      Year == "2001" ~
+        max(c_across(ends_with("_temp_01"))) - min(c_across(ends_with("_temp_01"))),
+      Year == "2002" ~
+        max(c_across(ends_with("_temp_02"))) - min(c_across(ends_with("_temp_02"))),
+      Year == "2003" ~
+        max(c_across(ends_with("_temp_03"))) - min(c_across(ends_with("_temp_03"))),
+      Year == "2004" ~
+        max(c_across(ends_with("_temp_04"))) - min(c_across(ends_with("_temp_04"))),
+      Year == "2005" ~
+        max(c_across(ends_with("_temp_05"))) - min(c_across(ends_with("_temp_05"))),
+      Year == "2006" ~
+        max(c_across(ends_with("_temp_06"))) - min(c_across(ends_with("_temp_06"))),
+      Year == "2007" ~
+        max(c_across(ends_with("_temp_07"))) - min(c_across(ends_with("_temp_07"))),
+      Year == "2008" ~
+        max(c_across(ends_with("_temp_08"))) - min(c_across(ends_with("_temp_08"))),
+      Year == "2009" ~
+        max(c_across(ends_with("_temp_09"))) - min(c_across(ends_with("_temp_09"))),
+      Year == "2010" ~
+        max(c_across(ends_with("_temp_10"))) - min(c_across(ends_with("_temp_10"))),
+      Year == "2011" ~
+        max(c_across(ends_with("_temp_11"))) - min(c_across(ends_with("_temp_11"))),
+      Year == "2012" ~
+        max(c_across(ends_with("_temp_12"))) - min(c_across(ends_with("_temp_12"))),
+      Year == "2013" ~
+        max(c_across(ends_with("_temp_13"))) - min(c_across(ends_with("_temp_13"))),
+      Year == "2014" ~
+        max(c_across(ends_with("_temp_14"))) - min(c_across(ends_with("_temp_14")))
     )
   )
 ```
 
-Change temperatures from C to K:
+Calculate climate variables for present 3-year conditions:
 ```{r}
-library(weathermetrics)
 final_dat <-
   final_dat %>%
+  rowwise() %>%
   mutate(
-    MAT = celsius.to.kelvin(MAT),
-    min_temp = celsius.to.kelvin(min_temp),
-    max_temp = celsius.to.kelvin(max_temp)
+    #create MAT variable for each year (1999-2014)
+    present3_MAT_99 = mean(c_across(ends_with("_temp_99"))),
+    present3_MAT_00 =  mean(c_across(ends_with("_temp_00"))),
+    present3_MAT_01 =  mean(c_across(ends_with("_temp_01"))),
+    present3_MAT_02 =  mean(c_across(ends_with("_temp_02"))),
+    present3_MAT_03 =  mean(c_across(ends_with("_temp_03"))),
+    present3_MAT_04 =  mean(c_across(ends_with("_temp_04"))),
+    present3_MAT_05 =  mean(c_across(ends_with("_temp_05"))),
+    present3_MAT_06 =  mean(c_across(ends_with("_temp_06"))),
+    present3_MAT_07 =  mean(c_across(ends_with("_temp_07"))),
+    present3_MAT_08 =  mean(c_across(ends_with("_temp_08"))),
+    present3_MAT_09 =  mean(c_across(ends_with("_temp_09"))),
+    present3_MAT_10 =  mean(c_across(ends_with("_temp_10"))),
+    present3_MAT_11 =  mean(c_across(ends_with("_temp_11"))),
+    present3_MAT_12 =  mean(c_across(ends_with("_temp_12"))),
+    present3_MAT_13 =  mean(c_across(ends_with("_temp_13"))),
+    present3_MAT_14 =  mean(c_across(ends_with("_temp_14"))),
+    #create VAT variable for each year (1999-2014)
+    present3_VAT_99 = max(c_across(ends_with("_temp_99"))) - min(c_across(ends_with("_temp_99"))),
+    present3_VAT_00 =  max(c_across(ends_with("_temp_00"))) - min(c_across(ends_with("_temp_00"))),
+    present3_VAT_01 =  max(c_across(ends_with("_temp_01"))) - min(c_across(ends_with("_temp_01"))),
+    present3_VAT_02 =  max(c_across(ends_with("_temp_02"))) - min(c_across(ends_with("_temp_02"))),
+    present3_VAT_03 =  max(c_across(ends_with("_temp_03"))) - min(c_across(ends_with("_temp_03"))),
+    present3_VAT_04 =  max(c_across(ends_with("_temp_04"))) - min(c_across(ends_with("_temp_04"))),
+    present3_VAT_05 =  max(c_across(ends_with("_temp_05"))) - min(c_across(ends_with("_temp_05"))),
+    present3_VAT_06 =  max(c_across(ends_with("_temp_06"))) - min(c_across(ends_with("_temp_06"))),
+    present3_VAT_07 =  max(c_across(ends_with("_temp_07"))) - min(c_across(ends_with("_temp_07"))),
+    present3_VAT_08 =  max(c_across(ends_with("_temp_08"))) - min(c_across(ends_with("_temp_08"))),
+    present3_VAT_09 =  max(c_across(ends_with("_temp_09"))) - min(c_across(ends_with("_temp_09"))),
+    present3_VAT_10 =  max(c_across(ends_with("_temp_10"))) - min(c_across(ends_with("_temp_10"))),
+    present3_VAT_11 =  max(c_across(ends_with("_temp_11"))) - min(c_across(ends_with("_temp_11"))),
+    present3_VAT_12 =  max(c_across(ends_with("_temp_12"))) - min(c_across(ends_with("_temp_12"))),
+    present3_VAT_13 =  max(c_across(ends_with("_temp_13"))) - min(c_across(ends_with("_temp_13"))),
+    present3_VAT_14 =  max(c_across(ends_with("_temp_14"))) - min(c_across(ends_with("_temp_14")))
+)
+
+final_dat <-
+  final_dat %>%
+  rowwise() %>%
+  mutate(
+   #create present3_MAT variable for average over last 3 years
+    present3_MAT = case_when(
+      Year == "2001" ~ mean(c(
+        present3_MAT_99, 
+        present3_MAT_00,
+        present3_MAT_01)),
+      Year == "2002" ~ mean(c( 
+        present3_MAT_00,
+        present3_MAT_01,
+        present3_MAT_02)),
+      Year == "2003" ~ mean(c( 
+        present3_MAT_01,
+        present3_MAT_02,
+        present3_MAT_03)),
+      Year == "2004" ~ mean(c( 
+        present3_MAT_02,
+        present3_MAT_03,
+        present3_MAT_04)),
+      Year == "2005" ~ mean(c( 
+        present3_MAT_03,
+        present3_MAT_04,
+        present3_MAT_05)),
+      Year == "2006" ~ mean(c( 
+        present3_MAT_04,
+        present3_MAT_05,
+        present3_MAT_06)),
+      Year == "2007" ~ mean(c( 
+        present3_MAT_05,
+        present3_MAT_06,
+        present3_MAT_07)),
+      Year == "2008" ~ mean(c( 
+        present3_MAT_06,
+        present3_MAT_07,
+        present3_MAT_08)),
+      Year == "2009" ~ mean(c( 
+        present3_MAT_07,
+        present3_MAT_08,
+        present3_MAT_09)),
+      Year == "2010" ~ mean(c( 
+        present3_MAT_08,
+        present3_MAT_09,
+        present3_MAT_10)),
+      Year == "2011" ~ mean(c( 
+        present3_MAT_09,
+        present3_MAT_10,
+        present3_MAT_11)),
+      Year == "2012" ~ mean(c( 
+        present3_MAT_10,
+        present3_MAT_11,
+        present3_MAT_12)),
+      Year == "2013" ~ mean(c( 
+        present3_MAT_11,
+        present3_MAT_12,
+        present3_MAT_13)),
+      Year == "2014" ~ mean(c( 
+        present3_MAT_12,
+        present3_MAT_13,
+        present3_MAT_14))
+      ),
+   #create present3_VAT variable for average over last 3 years
+    present3_VAT = case_when(
+      Year == "2001" ~ mean(c(
+        present3_VAT_99, 
+        present3_VAT_00,
+        present3_VAT_01)),
+      Year == "2002" ~ mean(c( 
+        present3_VAT_00,
+        present3_VAT_01,
+        present3_VAT_02)),
+      Year == "2003" ~ mean(c( 
+        present3_VAT_01,
+        present3_VAT_02,
+        present3_VAT_03)),
+      Year == "2004" ~ mean(c( 
+        present3_VAT_02,
+        present3_VAT_03,
+        present3_VAT_04)),
+      Year == "2005" ~ mean(c( 
+        present3_VAT_03,
+        present3_VAT_04,
+        present3_VAT_05)),
+      Year == "2006" ~ mean(c( 
+        present3_VAT_04,
+        present3_VAT_05,
+        present3_VAT_06)),
+      Year == "2007" ~ mean(c( 
+        present3_VAT_05,
+        present3_VAT_06,
+        present3_VAT_07)),
+      Year == "2008" ~ mean(c( 
+        present3_VAT_06,
+        present3_VAT_07,
+        present3_VAT_08)),
+      Year == "2009" ~ mean(c( 
+        present3_VAT_07,
+        present3_VAT_08,
+        present3_VAT_09)),
+      Year == "2010" ~ mean(c( 
+        present3_VAT_08,
+        present3_VAT_09,
+        present3_VAT_10)),
+      Year == "2011" ~ mean(c( 
+        present3_VAT_09,
+        present3_VAT_10,
+        present3_VAT_11)),
+      Year == "2012" ~ mean(c( 
+        present3_VAT_10,
+        present3_VAT_11,
+        present3_VAT_12)),
+      Year == "2013" ~ mean(c( 
+        present3_VAT_11,
+        present3_VAT_12,
+        present3_VAT_13)),
+      Year == "2014" ~ mean(c( 
+        present3_VAT_12,
+        present3_VAT_13,
+        present3_VAT_14))
+      )
+  )
+```
+
+Calculate climate variables for historical conditions:
+```{r}
+final_dat <-
+  final_dat %>%
+  rowwise() %>%
+  mutate(
+    #create MAT variable for each baseline year (1961-1980)
+    past_MAT_61 = mean(c_across(ends_with("_temp_61"))),
+    past_MAT_62 = mean(c_across(ends_with("_temp_62"))),
+    past_MAT_63 = mean(c_across(ends_with("_temp_63"))),
+    past_MAT_64 = mean(c_across(ends_with("_temp_64"))),
+    past_MAT_65 = mean(c_across(ends_with("_temp_65"))),
+    past_MAT_66 = mean(c_across(ends_with("_temp_66"))),
+    past_MAT_67 = mean(c_across(ends_with("_temp_67"))),
+    past_MAT_68 = mean(c_across(ends_with("_temp_68"))),
+    past_MAT_69 = mean(c_across(ends_with("_temp_69"))),
+    past_MAT_70 = mean(c_across(ends_with("_temp_70"))),
+    past_MAT_71 = mean(c_across(ends_with("_temp_71"))),
+    past_MAT_72 = mean(c_across(ends_with("_temp_72"))),
+    past_MAT_73 = mean(c_across(ends_with("_temp_73"))),
+    past_MAT_74 = mean(c_across(ends_with("_temp_74"))),
+    past_MAT_75 = mean(c_across(ends_with("_temp_75"))),
+    past_MAT_76 = mean(c_across(ends_with("_temp_76"))),
+    past_MAT_77 = mean(c_across(ends_with("_temp_77"))),
+    past_MAT_78 = mean(c_across(ends_with("_temp_78"))),
+    past_MAT_79 = mean(c_across(ends_with("_temp_79"))),
+    past_MAT_80 = mean(c_across(ends_with("_temp_80"))),
+    #create VAT variable for each baseline year (1961-1980)
+    past_VAT_61 = max(c_across(ends_with("_temp_61"))) - min(c_across(ends_with("_temp_61"))),
+    past_VAT_62 = max(c_across(ends_with("_temp_62"))) - min(c_across(ends_with("_temp_62"))),
+    past_VAT_63 = max(c_across(ends_with("_temp_63"))) - min(c_across(ends_with("_temp_63"))),
+    past_VAT_64 = max(c_across(ends_with("_temp_64"))) - min(c_across(ends_with("_temp_64"))),
+    past_VAT_65 = max(c_across(ends_with("_temp_65"))) - min(c_across(ends_with("_temp_65"))),
+    past_VAT_66 = max(c_across(ends_with("_temp_66"))) - min(c_across(ends_with("_temp_66"))),
+    past_VAT_67 = max(c_across(ends_with("_temp_67"))) - min(c_across(ends_with("_temp_67"))),
+    past_VAT_68 = max(c_across(ends_with("_temp_68"))) - min(c_across(ends_with("_temp_68"))),
+    past_VAT_69 = max(c_across(ends_with("_temp_69"))) - min(c_across(ends_with("_temp_69"))),
+    past_VAT_70 = max(c_across(ends_with("_temp_70"))) - min(c_across(ends_with("_temp_70"))),
+    past_VAT_71 = max(c_across(ends_with("_temp_71"))) - min(c_across(ends_with("_temp_71"))),
+    past_VAT_72 = max(c_across(ends_with("_temp_72"))) - min(c_across(ends_with("_temp_72"))),
+    past_VAT_73 = max(c_across(ends_with("_temp_73"))) - min(c_across(ends_with("_temp_73"))),
+    past_VAT_74 = max(c_across(ends_with("_temp_74"))) - min(c_across(ends_with("_temp_74"))),
+    past_VAT_75 = max(c_across(ends_with("_temp_75"))) - min(c_across(ends_with("_temp_75"))),
+    past_VAT_76 = max(c_across(ends_with("_temp_76"))) - min(c_across(ends_with("_temp_76"))),
+    past_VAT_77 = max(c_across(ends_with("_temp_77"))) - min(c_across(ends_with("_temp_77"))),
+    past_VAT_78 = max(c_across(ends_with("_temp_78"))) - min(c_across(ends_with("_temp_78"))),
+    past_VAT_79 = max(c_across(ends_with("_temp_79"))) - min(c_across(ends_with("_temp_79"))),
+    past_VAT_80 = max(c_across(ends_with("_temp_80"))) - min(c_across(ends_with("_temp_80")))
+  )
+final_dat <-
+  final_dat %>%
+  rowwise() %>%
+  mutate(
+    #create past_MAT variable for average over baseline years
+    past_MAT = mean(c_across(starts_with("past_MAT"))),
+    #create past_VAT variable for average over baseline years
+    past_VAT = mean(c_across(starts_with("past_VAT")))
+  )
+```
+
+Calculate climate change variables:
+```{r}
+final_dat <-
+  final_dat %>%
+  rowwise() %>%
+  mutate(
+    change_MAT = present_MAT - past_MAT,
+    change3_MAT = present3_MAT - past_MAT,
+    change_VAT = present_VAT - past_VAT,
+    change3_VAT = present3_VAT - past_VAT
   )
 ```
 
@@ -1236,10 +1185,88 @@ site_dat = read.csv("~/Desktop/PhD/Chapter 1/Data/Working/R/Site_Data.csv",
 ```{r}
 final_dat <-
   final_dat %>%
-  left_join(site_dat,
-            join_by(StudyID_yr == StudyID_yr,
-                    Block == Block,
-                    SiteID == SiteID))
+  left_join(
+    site_dat,
+    join_by(
+      StudyID == StudyID,
+      Year == Year,
+      StudyID_yr == StudyID_yr,
+      Block == Block,
+      SiteID == SiteID
+    )
+  )
+```
+
+Remove unnecessary variables:
+```{r}
+final_dat <- final_dat %>%
+  dplyr::select(-ends_with(
+    c(
+      "_61",
+      "_62",
+      "_63",
+      "_64",
+      "_65",
+      "_66",
+      "_67",
+      "_68",
+      "_69",
+      "_70",
+      "_71",
+      "_72",
+      "_73",
+      "_74",
+      "_75",
+      "_76",
+      "_77",
+      "_78",
+      "_79",
+      "_80",
+      "_99",
+      "_00",
+      "_01",
+      "_02",
+      "_03",
+      "_04",
+      "_05",
+      "_06",
+      "_07",
+      "_08",
+      "_09",
+      "_10",
+      "_11",
+      "_12",
+      "_13",
+      "_14"
+    )
+  )) %>%
+  dplyr::select(-starts_with(
+    c(
+      "Jan_",
+      "Feb_",
+      "Mar_",
+      "Apr_",
+      "May_",
+      "Jun_",
+      "Jul_",
+      "Aug_",
+      "Sep_",
+      "Oct_",
+      "Nov_",
+      "Dec_"
+    )
+  )) %>%
+  dplyr::select(-starts_with(c("Percent_", "Shannon_"))) %>%
+  dplyr::select(
+    -c(
+      "Site_description",
+      "Crop_species",
+      "Management",
+      "Tilling",
+      "Local_diversity",
+      "Other_covariate"
+    )
+  )
 ```
 
 # Write CSV

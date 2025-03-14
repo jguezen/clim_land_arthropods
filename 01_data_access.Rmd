@@ -23,16 +23,6 @@ download.file(url, file_name)
 untar(file_name, exdir = path.expand(outdir))
 ```
 
-## Precipitation
-```{r}
-outdir <- "~/Desktop/clim_land_arthropods/precip_2014"
-dir.create(outdir)
-file_name = file.path(outdir, "precip_2014.tar.gz")
-url <- "http://climate.geog.udel.edu/html_pages/Global2014/precip_2014.tar.gz"
-download.file(url, file_name)
-untar(file_name, exdir = path.expand(outdir))
-```
-
 
 # Land-use and Arthropod Abundance Data
 
