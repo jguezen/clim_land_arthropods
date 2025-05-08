@@ -291,6 +291,42 @@ sum(is.na(final_dat$diet_breadth))
 sum(is.na(final_dat$overwintering_habitat))
 sum(is.na(final_dat$dispersal))
 ```
+
+# Table S3
+
+```{r}
+Table_S3 <- final_dat %>%
+  dplyr::select(
+    Family,
+    diet_breadth,
+    dispersal,
+    overwintering_habitat,
+    fg_pollinator,
+    fg_pest,
+    fg_nat_enemy
+  ) %>%
+  distinct() %>%
+  rename(
+    Diet = diet_breadth,
+    Dispersal = dispersal,
+    Habitat = overwintering_habitat
+  ) %>% mutate(
+    Habitat = case_when(
+      Habitat == "natural, margin" ~ "specialist",
+      Habitat == "natural, margin, crop" ~ "generalist"),
+    Functional_group = case_when(
+      fg_pollinator == 1 ~ "pollinator",
+      fg_pest == 1 ~ "pest",
+      fg_nat_enemy == 1 ~ "natural enemy"
+    )
+  ) %>% 
+  na.omit() %>%
+  dplyr::select(-c(fg_pollinator, fg_pest, fg_nat_enemy))
+
+write.csv(Table_S3, "~/Desktop/clim_land_arthropods/Table_S3.csv")
+```
+
+
 # Trait syndromes
 
 Create trait (ts) variables for pollinators:
