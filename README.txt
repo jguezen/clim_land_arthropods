@@ -9,7 +9,7 @@ GENERAL INFORMATION
 2. Author Information
 	A.	Name: Jessica M. Guezen	
 		Institution: University of Guelph
-		Email: jessicaguezen@gmail.com
+		Email: guezenj@uoguelph.ca
 
 	B.	Name: Madhur Anand
 		Institution: University of Guelph
